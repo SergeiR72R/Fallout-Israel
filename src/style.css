@@ -298,7 +298,8 @@ button { font-family: inherit; }
 
 /* ---------- экраны ---------- */
 
-.screen { position: fixed; inset: 0; z-index: 30; }
+.screen { position: fixed; inset: 0; z-index: 30; overflow: auto; }
+.screen > .win { margin: auto; }
 .menu-screen { background: #000; }
 .menu-bg {
   position: absolute; inset: 0;
@@ -329,7 +330,7 @@ button { font-family: inherit; }
 @keyframes introFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .intro-skip { position: absolute; bottom: 20px; right: 24px; color: #5a4a36; font-size: 15px; }
 
-.cc-screen { display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #2a2018, #000 80%); }
+.cc-screen { display: flex; background: radial-gradient(ellipse at center, #2a2018, #000 80%); }
 .cc { width: 1500px; }
 .cc-body { display: grid; grid-template-columns: 380px 400px 1fr; grid-template-rows: auto 1fr 170px; gap: 14px 18px; height: 820px; }
 .cc-top { grid-column: 1 / 4; display: flex; align-items: center; gap: 16px; }

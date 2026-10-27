@@ -72,7 +72,6 @@ export class View {
     this.camera.left = -halfW; this.camera.right = halfW;
     this.camera.top = halfH; this.camera.bottom = -halfH;
     this.camera.updateProjectionMatrix();
-    document.documentElement.style.setProperty('--s', String(h / 1080));
     this.computeBounds();
     this.clampTarget();
     this.updateCamera();

@@ -107,7 +107,7 @@ export function characterCreation(root: HTMLElement): Promise<Sheet> {
     w.appendChild(el('div', 'win-title', 'СОЗДАНИЕ ПЕРСОНАЖА'));
     scr.appendChild(w);
     root.appendChild(scr);
-    let desc = { title: 'Профиль', text: 'Распределите очки характеристик, отметьте три навыка и, если хотите, выберите до двух черт характера. Наведите на любой пункт, чтобы прочитать описание.' };
+    let desc = { title: 'Профиль', text: 'Распределите очки характеристик кнопками «+» и «−», затем щёлкните по трём навыкам справа, чтобы отметить их (отмеченные растут быстрее). Черты характера — по желанию, до двух. Или выберите готового героя вверху справа.' };
 
     const spent = () => STATS.reduce((a, s) => a + sh.base[s.id], 0) - 35;
     const left = () => FREE_STAT_POINTS - spent();

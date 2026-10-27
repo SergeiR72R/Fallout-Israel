@@ -9,6 +9,14 @@ import { renderGuide } from './guide';
 
 const app = document.getElementById('app')!;
 
+/** Масштаб интерфейса: всё свёрстано под 1080p и ужимается, чтобы влезть в любое окно. */
+function updateUiScale() {
+  const s = Math.min(window.innerHeight / 1080, window.innerWidth / 1520);
+  document.documentElement.style.setProperty('--s', String(s));
+}
+updateUiScale();
+window.addEventListener('resize', updateUiScale);
+
 function readSave(): SaveData | null {
   try {
     const raw = localStorage.getItem('hamsin-save');
