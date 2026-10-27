@@ -48,6 +48,9 @@ function startGame(sheet: Sheet, save?: SaveData) {
     else if (e.button === 2) game.onRightClick(e.clientX, e.clientY);
   });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  window.addEventListener('mousemove', (e) => { game.edgeMouse = { x: e.clientX, y: e.clientY, inside: true }; });
+  document.documentElement.addEventListener('mouseleave', () => { game.edgeMouse.inside = false; });
+  window.addEventListener('blur', () => { game.edgeMouse.inside = false; });
   window.addEventListener('keydown', (e) => game.onKey(e, true));
   window.addEventListener('keyup', (e) => game.onKey(e, false));
 

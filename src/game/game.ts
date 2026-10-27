@@ -8,6 +8,7 @@ import { WALK_SPEED, RUN_SPEED } from '../config';
 import { Level, Interactive, hexShape } from '../world/level';
 import { View } from '../world/view';
 import { Critter } from '../world/critter';
+import { getSheet } from '../world/sprites';
 import { KIBBUTZ, CRITTERS } from '../data/kibbutz';
 import { DIALOGS, DialogCtx, QuestState } from '../data/dialogs';
 import { AIM_PARTS, AimPart, hitChance, resolveAttack, partName } from '../rules/combat';
@@ -51,6 +52,9 @@ export class Game {
   private moveToken = 0;
   private playerTurnDone: (() => void) | null = null;
   private mouse = { x: 0, y: 0, inside: false };
+  /** Положение мыши во всём окне (и над панелью) — для прокрутки краями. */
+  edgeMouse = { x: 0, y: 0, inside: false };
+  private lastClick = { t: 0, x: 0, y: 0 };
   private keys = new Set<string>();
   private awarenessTimer = 0;
   private barkTimer = 5;
@@ -69,7 +73,9 @@ export class Game {
     for (const it of this.level.interactives) it.object.userData.interactive = it;
 
     for (const sp of KIBBUTZ.spawns) {
-      const d = CRITTERS[sp.id];
+      let d = CRITTERS[sp.id];
+      // Героиня — отдельный набор спрайтов (если он уже отрендерен).
+      if (sp.id === 'player' && sheet.sex === 'f' && getSheet('heroine')) d = { ...d, sprite: 'heroine' };
       const want = 'u' in sp ? uvToHex(sp.u, sp.v) : offsetToHex(sp.col, sp.row);
       const hex = this.level.nearestPassable(want, (h) => !this.critters.some((o) => eq(o.hex, h)));
       const c = new Critter(d, hex);
@@ -100,13 +106,19 @@ export class Game {
 
     // Прокрутка: края экрана и клавиши, как в Fallout.
     if (!this.ui.modalOpen()) {
-      const edge = 6, sp = 14 * dt;
+      // Зона прокрутки — полоса у края окна (≈90 px на 1080p), скорость растёт к самому краю.
+      // Снизу полоса узкая: там панель интерфейса.
+      const sp = 14 * dt;
+      const zone = 90 * (window.innerHeight / 1080);
+      const zoneBottom = 28 * (window.innerHeight / 1080);
+      const ramp = (d: number, z: number) => (d < z ? 0.35 + 0.65 * (1 - d / z) : 0);
       let du = 0, dv = 0;
-      if (this.mouse.inside) {
-        if (this.mouse.x <= edge) du -= sp;
-        if (this.mouse.x >= window.innerWidth - edge) du += sp;
-        if (this.mouse.y <= edge) dv -= sp;
-        if (this.mouse.y >= window.innerHeight - edge) dv += sp;
+      if (this.edgeMouse.inside) {
+        const { x, y } = this.edgeMouse;
+        du -= sp * ramp(x, zone);
+        du += sp * ramp(window.innerWidth - 1 - x, zone);
+        dv -= sp * ramp(y, zone);
+        dv += sp * ramp(window.innerHeight - 1 - y, zoneBottom);
       }
       if (this.keys.has('ArrowLeft')) du -= sp;
       if (this.keys.has('ArrowRight')) du += sp;
@@ -249,7 +261,11 @@ export class Game {
     }
     if (this.targeting) { this.targeting = null; this.updateHover(); return; }
     const h = this.view.hexAt(x, y);
-    if (h) await this.movePlayer(h, shift);
+    // Двойной щелчок по точке — бег (как в Fallout 2).
+    const now = performance.now();
+    const dbl = now - this.lastClick.t < 400 && Math.hypot(x - this.lastClick.x, y - this.lastClick.y) < 24;
+    this.lastClick = { t: dbl ? 0 : now, x, y };
+    if (h) await this.movePlayer(h, shift || dbl);
   }
 
   onRightClick(x: number, y: number) {

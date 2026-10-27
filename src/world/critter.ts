@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Hex, hexToWorld } from '../core/hex';
 import { HumanLook, HumanRig, Rig, ScorpionRig } from './models';
+import { SpriteRig, getSheet } from './sprites';
 import { Sheet, SkillId, derived, effStats, newSheet, skillValue } from '../rules/stats';
 import { ITEMS, Stack, WeaponDef, def } from '../rules/items';
 
@@ -21,6 +22,8 @@ export interface CritterDef {
   faction: Faction;
   desc: string;
   look?: HumanLook;
+  /** Атлас спрайтов из Blender (src/data/sprites/<имя>.json); без него — процедурная модель. */
+  sprite?: string;
   sheet?: Partial<Sheet>;
   monster?: MonsterStats;
   inventory?: Stack[];
@@ -61,10 +64,14 @@ export class Critter {
     this.sheet = { ...newSheet(), ...(def.sheet ?? {}) } as Sheet;
     if (def.sheet?.base) this.sheet.base = { ...def.sheet.base };
     if (def.kind === 'human') {
-      const r = new HumanRig(def.look ?? { skin: 0xc49a74, cloth: 0x7a6a50, cloth2: 0x4a3a28, hair: 0x2a1a10 });
-      this.rig = r;
+      const sheet = getSheet(def.sprite);
+      this.rig = sheet
+        ? new SpriteRig(sheet)
+        : new HumanRig(def.look ?? { skin: 0xc49a74, cloth: 0x7a6a50, cloth2: 0x4a3a28, hair: 0x2a1a10 });
     } else {
-      this.rig = def.kind === 'bigScorpion' ? new ScorpionRig(1.45, 0x7a4a26) : new ScorpionRig(1, 0x9a7040);
+      const sheet = getSheet(def.sprite);
+      this.rig = sheet ? new SpriteRig(sheet)
+        : def.kind === 'bigScorpion' ? new ScorpionRig(1.45, 0x7a4a26) : new ScorpionRig(1, 0x9a7040);
     }
     for (const s of def.inventory ?? []) this.inventory.push({ ...s });
     if (def.hand) this.hands[0] = { id: def.hand, qty: 1, loaded: ITEMS[def.hand].weapon?.mag };
@@ -126,7 +133,7 @@ export class Critter {
   worldPos(): THREE.Vector3 { return this.rig.root.position.clone(); }
 
   syncWeaponModel() {
-    if (!(this.rig instanceof HumanRig)) return;
+    if (!(this.rig instanceof HumanRig) && !(this.rig instanceof SpriteRig)) return;
     const s = this.hands[this.activeHand];
     const id = s?.id;
     this.rig.setWeapon(id === 'pistol9' ? 'pistol' : id === 'knife' ? 'knife' : id === 'rifle' ? 'rifle' : null);

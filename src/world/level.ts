@@ -163,6 +163,10 @@ export class Level {
     ground.position.set(cx, 0, cz);
     ground.receiveShadow = true;
     ground.name = 'ground';
+    // Земля не пишет глубину: нижняя часть спрайта (тень у ног) уходит «под землю»
+    // и иначе обрезалась бы. Земля рисуется первой, ниже неё ничего нет.
+    material.depthWrite = false;
+    ground.renderOrder = -5;
     this.root.add(ground);
   }
 
