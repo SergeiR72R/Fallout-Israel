@@ -28,12 +28,12 @@ for o in list(bpy.data.objects):
 
 # ---------------------------------------------------------------- материалы
 
-def chitin(name, color, gloss=0.35):
+def chitin(name, color, gloss=0.5):
     m = bpy.data.materials.new(name); m.use_nodes = True
     n = m.node_tree.nodes; l = m.node_tree.links
     b = n['Principled BSDF']
     b.inputs['Roughness'].default_value = gloss
-    b.inputs['Coat Weight'].default_value = 0.4
+    b.inputs['Coat Weight'].default_value = 0.12
     tc = n.new('ShaderNodeTexCoord')
     noise = n.new('ShaderNodeTexNoise'); noise.inputs['Scale'].default_value = 40; noise.inputs['Detail'].default_value = 8
     l.new(tc.outputs['Object'], noise.inputs['Vector'])

@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """Собирает кадры из Blender (tools/blender/characters.py) в атласы для игры.
 
-    python3 tools/pack_sprites.py /opt/sprites/hero hero
+    python3 tools/pack_sprites.py /opt/sprites/hero hero [--sat 1.0] [--bright 1.0] [--contrast 1.0]
 
 Кадры обрезаются по непрозрачной области, уменьшаются до игрового масштаба
 (90 пикселей на метр — родной для 1080p) и раскладываются по страницам 4096×4096.
 Результат: public/sprites/<имя>-<стр>.webp и src/data/sprites/<имя>.json.
 """
 import json, os, re, sys
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 src, name = sys.argv[1], sys.argv[2]
-TARGET_PPU = float(sys.argv[3]) if len(sys.argv) > 3 else 90.0
+def opt(key, default):
+    return float(sys.argv[sys.argv.index(key) + 1]) if key in sys.argv else default
+TARGET_PPU = opt('--ppu', 90.0)
+# Цветокоррекция кадров (подогнать под палитру фона без перерендера).
+SAT, BRIGHT, CONTRAST = opt('--sat', 1.0), opt('--bright', 1.0), opt('--contrast', 1.0)
 PAGE = 4096
 PAD = 2
 
@@ -34,6 +38,13 @@ for fn in sorted(os.listdir(src)):
     if not box:
         continue
     crop = im.crop(box)
+    if (SAT, BRIGHT, CONTRAST) != (1.0, 1.0, 1.0):
+        a0 = crop.getchannel('A')
+        rgb = crop.convert('RGB')
+        rgb = ImageEnhance.Color(rgb).enhance(SAT)
+        rgb = ImageEnhance.Brightness(rgb).enhance(BRIGHT)
+        rgb = ImageEnhance.Contrast(rgb).enhance(CONTRAST)
+        crop = rgb.convert('RGBA'); crop.putalpha(a0)
     w, h = max(1, round(crop.width * scale)), max(1, round(crop.height * scale))
     crop = crop.resize((w, h), Image.LANCZOS)
     frames.append(dict(key=f'{wset}/{anim}/{d}/{i}', img=crop,
