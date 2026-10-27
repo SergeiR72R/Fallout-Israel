@@ -16,8 +16,8 @@ export const KIBBUTZ: LevelDef = {
   rows: 56,
   groundColor: 0xd2b27a,
   // Фон перерисован во Flow из заготовки docs/guides/kibbutz-blockout.png
-  // (исходник: assets/incoming/backgrounds/kibbutz-flow-a.jpg, приведён к
-  // пропорциям заготовки и увеличен вдвое). Калибровка — из kibbutz-calibration.json ×2.
+  // (исходник: assets/incoming/backgrounds/kibbutz-flow-a-upscaled.jpg, без
+  // значка апскейлера, приведён к пропорциям заготовки). Калибровка — kibbutz-calibration.json ×2.
   background: { src: 'backgrounds/kibbutz.jpg', width: 3352, height: 3032, ppu: 90, originPx: [90, 824.42] },
   props: [
     { type: 'hatch', u: 6.1, v: 42 },
