@@ -15,20 +15,24 @@ export const KIBBUTZ: LevelDef = {
   cols: 48,
   rows: 56,
   groundColor: 0xd2b27a,
+  // Фон перерисован во Flow из заготовки docs/guides/kibbutz-blockout.png
+  // (исходник: assets/incoming/backgrounds/kibbutz-flow-a.jpg, приведён к
+  // пропорциям заготовки и увеличен вдвое). Калибровка — из kibbutz-calibration.json ×2.
+  background: { src: 'backgrounds/kibbutz.jpg', width: 3352, height: 3032, ppu: 90, originPx: [90, 824.42] },
   props: [
-    { type: 'hatch', u: 6, v: 43 },
+    { type: 'hatch', u: 6.1, v: 42 },
     {
       type: 'building', u: 11, v: 21, w: 10, d: 7, h: 3.4, color: PLASTER, floor: FLOOR, ruin: 0.55,
       doors: [{ side: 's', at: 0.5, width: 2.2 }, { side: 'e', at: 1, width: 2.2 }],
       name: 'Хадар-охель',
     },
-    { type: 'crate', u: 9, v: 19, id: 'diningCrate', name: 'Ящик в столовой', items: [{ id: 'loof', qty: 2 }, { id: 'ammo9', qty: 12 }, { id: 'asimon', qty: 7 }] },
+    { type: 'crate', u: 9, v: 17.8, id: 'diningCrate', name: 'Ящик в столовой', items: [{ id: 'loof', qty: 2 }, { id: 'ammo9', qty: 12 }, { id: 'asimon', qty: 7 }] },
     {
       type: 'building', u: 27.5, v: 25, w: 6, d: 5, h: 3, color: CONCRETE, floor: FLOOR, ruin: 0.35,
       doors: [{ side: 'w', at: 0, width: 2.2 }],
     },
     {
-      type: 'crate', u: 28.2, v: 25.6, id: 'armyCrate', locked: 25, name: 'Армейский ящик',
+      type: 'crate', u: 20.3, v: 13.1, id: 'armyCrate', locked: 25, name: 'Армейский ящик',
       items: [{ id: 'vest', qty: 1 }, { id: 'stim', qty: 1 }, { id: 'ammo9', qty: 20 }],
     },
     {
@@ -42,23 +46,26 @@ export const KIBBUTZ: LevelDef = {
     { type: 'palm', u: 5, v: 10, h: 6 },
     { type: 'palm', u: 33, v: 15, h: 4.2 },
     { type: 'car', u: 13, v: 37.5, rot: 25, color: 0x6e7f86 },
-    { type: 'barrel', u: 17.5, v: 24 },
-    { type: 'barrel', u: 18.2, v: 24.8, color: 0x3f4f3a },
-    { type: 'barrel', u: 31.5, v: 42 },
+    { type: 'crate', u: 17.3, v: 12.6, id: 'orangeCrate', name: 'Ящик из-под апельсинов', items: [{ id: 'loof', qty: 1 }, { id: 'asimon', qty: 4 }] },
+    { type: 'barrel', u: 18.2, v: 23.4 },
+    { type: 'barrel', u: 23.1, v: 23.6 },
+    { type: 'barrel', u: 23.0, v: 25, color: 0x3f4f3a },
+    { type: 'barrel', u: 31.6, v: 41.5 },
     { type: 'rubble', u: 19, v: 15, w: 2.5, d: 1.8, rot: 10 },
     { type: 'rubble', u: 8, v: 31, w: 1.8, d: 1.5 },
     { type: 'rubble', u: 30, v: 5, w: 2, d: 2 },
     { type: 'sign', u: 17, v: 45.5, text: 'נחל אור', sub: 'Кибуц Нахаль-Ор', id: 'gateSign' },
-    { type: 'sandbags', u: 22, v: 46.5, w: 2.8, rot: 45 },
-    { type: 'sandbags', u: 12, v: 46.5, w: 2.8, rot: 45 },
+    { type: 'wall', u: 7.9, v: 42.9, to: [14.3, 46.4] },
+    { type: 'wall', u: 20.1, v: 45.6, to: [25.4, 45.4] },
+    { type: 'wall', u: 26.1, v: 44.4, to: [31.9, 40.6] },
     {
-      type: 'box', u: 30.5, v: 10.5, w: 1.2, d: 0.9, h: 0.25, color: 0xd8d0bc, low: true,
+      type: 'box', u: 30.4, v: 9.2, w: 1.2, d: 0.9, h: 0.25, color: 0xd8d0bc, low: true,
       name: 'Кости', desc: 'Обглоданные кости. Козьи. Кажется, козьи.', id: 'bones',
     },
   ],
   spawns: [
     { id: 'player', col: 10, row: 46 },
-    { id: 'batya', col: 16, row: 31 },
+    { id: 'batya', u: 8, v: 24.8 }, // у двери столовой
     { id: 'shlomo', col: 23, row: 51 },
     { id: 'scorp1', col: 29, row: 9 },
     { id: 'scorp2', col: 37, row: 13 },

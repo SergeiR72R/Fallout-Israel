@@ -2,7 +2,7 @@
 // действия, ИИ, взаимодействие с предметами, опыт и уровни, сохранения.
 
 import * as THREE from 'three';
-import { Hex, distance, eq, findPath, hexToWorld, key, neighbors } from '../core/hex';
+import { Hex, distance, eq, findPath, hexToWorld, key, neighbors, offsetToHex, uvToHex } from '../core/hex';
 import { clamp, pick, rand, roll100, wait, tween } from '../core/util';
 import { WALK_SPEED, RUN_SPEED } from '../config';
 import { Level, Interactive, hexShape } from '../world/level';
@@ -60,7 +60,9 @@ export class Game {
   private wanderTimers = new Map<string, number>();
 
   constructor(readonly view: View, sheet: Sheet, save?: SaveData) {
-    this.level = new Level(KIBBUTZ);
+    // ?nobg — посмотреть локацию на заглушках, без нарисованного фона.
+    const noBg = new URLSearchParams(location.search).has('nobg');
+    this.level = new Level(noBg ? { ...KIBBUTZ, background: undefined } : KIBBUTZ);
     view.setLevel(this.level);
     const bg = this.level.buildBackground(view.camera);
     if (bg) view.scene.add(bg);
@@ -68,7 +70,8 @@ export class Game {
 
     for (const sp of KIBBUTZ.spawns) {
       const d = CRITTERS[sp.id];
-      const hex = { q: sp.col, r: sp.row - (sp.col - (sp.col & 1)) / 2 };
+      const want = 'u' in sp ? uvToHex(sp.u, sp.v) : offsetToHex(sp.col, sp.row);
+      const hex = this.level.nearestPassable(want, (h) => !this.critters.some((o) => eq(o.hex, h)));
       const c = new Critter(d, hex);
       if (c.isPlayer) {
         c.sheet = sheet;

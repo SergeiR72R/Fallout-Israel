@@ -121,7 +121,7 @@ function gridGuide(app: HTMLElement) {
 function levelGuide(app: HTMLElement, clay: boolean) {
   const params = new URLSearchParams(location.search);
   const ppu = Number(params.get('ppu') ?? 45);
-  const level = new Level(KIBBUTZ);
+  const level = new Level({ ...KIBBUTZ, background: undefined });
   // Без зелёных зон выхода.
   level.root.traverse((o) => {
     const m = (o as THREE.Mesh).material as THREE.Material | undefined;

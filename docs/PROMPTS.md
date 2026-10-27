@@ -77,7 +77,7 @@ Isometric game background: cracked white salt flats of the Dead Sea at dusk, cru
 3. Сохраните результат в **максимальном разрешении**. Если Flow даёт меньше 3500 пикселей по ширине, увеличьте картинку вдвое любым апскейлером (например, бесплатным Upscayl).
 4. Загрузите файл как `assets/incoming/backgrounds/kibbutz.png`.
 
-**B1. Кибуц Нахаль-Ор (перерисовка заготовки)**
+**B1. Кибуц Нахаль-Ор (перерисовка заготовки)** — ✅ сделано, способ работает: перерисовка совпала с заготовкой почти до пикселя.
 ```
 Repaint this 3D blockout into a finished, highly detailed game background. KEEP EXACTLY the same composition, camera angle, framing, image size, and the position, size and silhouette of every object — every wall, doorway, the water tower, palms, truck, barrels, crates, sandbags and rubble must stay exactly where they are. Only replace the flat placeholder materials with realistic detail:
 - ground: dry cracked desert earth and sand with trodden footpaths, small stones, tufts of dead grass;

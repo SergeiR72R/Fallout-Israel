@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import { HEX_R, CAM_YAW, SIN_PITCH } from '../config';
-import { Hex, hexToWorld, key, offsetToHex, hexToUV, uvToWorld, line } from '../core/hex';
+import { Hex, hexToWorld, key, offsetToHex, hexToUV, uvToWorld, line, neighbors } from '../core/hex';
 import { mat } from './models';
 import type { Stack } from '../rules/items';
 
@@ -44,9 +44,12 @@ export type PropDef = PropBase & (
   | { type: 'crate'; locked?: number; items: Stack[] }
   | { type: 'hatch' }
   | { type: 'sandbags'; w: number }
+  /** Мешки с песком между двумя точками (u,v) — для стенок, нарисованных под любым углом. */
+  | { type: 'wall'; to: [number, number] }
 );
 
-export interface SpawnDef { id: string; col: number; row: number; facing?: number }
+/** Где появляется персонаж: столбец/ряд гексов или точка в метрах (u, v). */
+export type SpawnDef = { id: string } & ({ col: number; row: number } | { u: number; v: number });
 
 export interface LevelDef {
   id: string;
@@ -100,6 +103,7 @@ export class Level {
     this.buildGround(painted);
     for (const p of def.props) this.buildProp(p, painted);
     this.computeBlocking();
+    if (painted) this.buildClickProxies();
     for (const ex of def.exits) {
       for (let c = ex.col; c < ex.col + ex.w; c++) for (let r = ex.row; r < ex.row + ex.h; r++) {
         const h = offsetToHex(c, r);
@@ -111,6 +115,21 @@ export class Level {
 
   centerWorld(): [number, number] {
     return uvToWorld(this.sizeU / 2, this.sizeV / 2);
+  }
+
+  /** Ближайший к h проходимый гекс (если h занят стеной — соседний снаружи). */
+  nearestPassable(h: Hex, free: (h: Hex) => boolean = () => true): Hex {
+    const seen = new Set([key(h)]);
+    const queue = [h];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      if (this.passable(cur) && free(cur)) return cur;
+      for (const n of neighbors(cur)) {
+        const k = key(n);
+        if (!seen.has(k) && this.inBounds.has(k)) { seen.add(k); queue.push(n); }
+      }
+    }
+    return h;
   }
 
   passable(h: Hex) {
@@ -164,6 +183,14 @@ export class Level {
   }
 
   private buildProp(p: PropDef, painted: boolean) {
+    if (p.type === 'wall') {
+      const [x1, z1] = uvToWorld(p.u, p.v);
+      const [x2, z2] = uvToWorld(p.to[0], p.to[1]);
+      const len = Math.hypot(x2 - x1, z2 - z1);
+      const rot = (Math.atan2(-(z2 - z1), x2 - x1) * 180) / Math.PI;
+      this.buildProp({ type: 'sandbags', u: (p.u + p.to[0]) / 2, v: (p.v + p.to[1]) / 2, w: len, rot }, painted);
+      return;
+    }
     const [x, z] = uvToWorld(p.u, p.v);
     const rot = ((p.rot ?? 0) * Math.PI) / 180;
     const local = (lx: number, lz: number): [number, number] => [
@@ -376,7 +403,7 @@ export class Level {
         g.position.set(x, 0, z);
         deco(g);
         this.blockers.push({ x, z, w: 1.6, d: 1.6, h: 0.3, rot: 0, low: true });
-        this.interactives.push({ id: 'hatch', name: 'Люк миклата', desc: 'Люк убежища, из которого вы вышли. За спиной — сто лет темноты. Назад дороги нет.', hex: this.nearestHex(x, z), object: g, kind: 'hatch' });
+        this.interactives.push({ id: 'hatch', name: 'Аварийный лаз миклата', desc: 'Бетонная труба аварийного выхода из миклата № 7. Через неё вы и выбрались наружу. За спиной — сто лет темноты, назад дороги нет.', hex: this.nearestHex(x, z), object: g, kind: 'hatch' });
         break;
       }
       case 'sandbags': {
@@ -394,6 +421,19 @@ export class Level {
         this.blockers.push({ x, z, w: p.w, d: 0.45, h: 0.8, rot, low: true });
         break;
       }
+    }
+  }
+
+  /** На нарисованном фоне декорации скрыты; по невидимым коробкам того же размера можно щёлкать. */
+  private buildClickProxies() {
+    const m = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+    for (const it of this.interactives) {
+      const box = new THREE.Box3().setFromObject(it.object, true);
+      const size = box.getSize(new THREE.Vector3()).max(new THREE.Vector3(0.8, 0.6, 0.8));
+      const proxy = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), m);
+      box.getCenter(proxy.position);
+      this.root.add(proxy);
+      it.object = proxy;
     }
   }
 
@@ -453,7 +493,7 @@ export class Level {
     const w = bg.width / bg.ppu, h = bg.height / bg.ppu;
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
-      new THREE.MeshBasicMaterial({ map: tex, depthTest: false, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ map: tex, depthTest: false, depthWrite: false, toneMapped: false }),
     );
     plane.renderOrder = -10;
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
