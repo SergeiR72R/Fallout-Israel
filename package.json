@@ -1,0 +1,30 @@
+{
+  "name": "hamsin",
+  "version": "0.1.0",
+  "description": "Постъядерная изометрическая RPG в израильском сеттинге",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "check": "tsc",
+    "guides": "node tools/render-guides.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SergeiR72R/Fallout-Israel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SergeiR72R/Fallout-Israel/issues"
+  },
+  "homepage": "https://github.com/SergeiR72R/Fallout-Israel#readme",
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.170.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "private": true,
+  "type": "module"
+}
