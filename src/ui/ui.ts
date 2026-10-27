@@ -505,7 +505,7 @@ export class UI {
     let has = false;
     try { has = !!localStorage.getItem('hamsin-save'); } catch { /* нет доступа */ }
     if (!has) { this.log('Нет сохранений.'); return; }
-    sessionStorage.setItem('hamsin-load', '1');
+    try { sessionStorage.setItem('hamsin-load', '1'); } catch { this.log('Не удалось загрузить игру.'); return; }
     location.reload();
   }
 

@@ -67,8 +67,12 @@ async function boot() {
   if (guide) { renderGuide(app, guide); return; }
 
   const save = readSave();
-  if (sessionStorage.getItem('hamsin-load') && save) {
+  let loadRequested = false;
+  try {
+    loadRequested = !!sessionStorage.getItem('hamsin-load');
     sessionStorage.removeItem('hamsin-load');
+  } catch { /* хранилище недоступно */ }
+  if (loadRequested && save) {
     startGame(save.sheet, save);
     return;
   }
