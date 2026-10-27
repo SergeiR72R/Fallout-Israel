@@ -18,7 +18,7 @@ function redButton(label: string, act: () => void, cls = '') {
 export function mainMenu(root: HTMLElement, hasSave: boolean): Promise<'new' | 'load'> {
   return new Promise((resolve) => {
     const s = el('div', 'screen menu-screen');
-    s.innerHTML = `<div class="menu-bg"></div>
+    s.innerHTML = `<div class="menu-bg" style="background-image: linear-gradient(90deg, rgba(10,6,3,.92) 0%, rgba(10,6,3,.55) 38%, rgba(10,6,3,0) 65%), url('art/menu.webp')"></div>
       <div class="menu-title"><div class="t1">${GAME_TITLE}</div><div class="t2">${GAME_SUBTITLE}</div></div>
       <div class="menu-ver">прототип 0.1 · графика-заглушка</div>`;
     const btns = el('div', 'menu-btns metal');

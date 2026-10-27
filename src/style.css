@@ -301,20 +301,7 @@ button { font-family: inherit; }
 .screen { position: fixed; inset: 0; z-index: 30; overflow: auto; }
 .screen > .win { margin: auto; }
 .menu-screen { background: #000; }
-.menu-bg {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse at 70% 75%, rgba(230, 140, 60, .35), transparent 55%),
-    radial-gradient(ellipse at 30% 20%, rgba(255, 220, 160, .12), transparent 45%),
-    linear-gradient(180deg, #2a1a10 0%, #6a3a1a 55%, #c07a3a 78%, #3a2414 100%);
-}
-.menu-bg::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 32%;
-  background:
-    linear-gradient(transparent, rgba(0, 0, 0, .85)),
-    repeating-linear-gradient(90deg, #1a120c 0 40px, #22170e 40px 140px, #140d08 140px 180px, #1d140c 180px 320px);
-  clip-path: polygon(0 40%, 6% 38%, 6% 20%, 9% 20%, 9% 36%, 18% 34%, 22% 10%, 23% 10%, 24% 34%, 33% 30%, 33% 18%, 40% 18%, 40% 30%, 52% 32%, 58% 0%, 60% 0%, 61% 30%, 70% 34%, 74% 22%, 82% 22%, 82% 36%, 92% 38%, 92% 26%, 96% 26%, 96% 40%, 100% 42%, 100% 100%, 0 100%);
-}
+.menu-bg { position: absolute; inset: 0; background-color: #2a1a10; background-size: cover; background-position: 60% 50%; }
 .menu-title { position: absolute; left: 8%; top: 14%; zoom: var(--s); }
 .menu-title .t1 { font: 700 150px 'Oswald'; letter-spacing: .14em; color: #e8b46a; text-shadow: 4px 4px 0 #3a1a08, 0 0 40px rgba(255, 160, 60, .35); line-height: 1; }
 .menu-title .t2 { font: 500 30px 'Oswald'; letter-spacing: .3em; color: #d9c497; margin-top: 6px; text-shadow: 2px 2px 0 #000; }

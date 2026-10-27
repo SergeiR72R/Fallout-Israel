@@ -23,13 +23,13 @@ function setupRenderer(w: number, h: number) {
   r.shadowMap.type = THREE.PCFSoftShadowMap;
   r.outputColorSpace = THREE.SRGBColorSpace;
   r.toneMapping = THREE.ACESFilmicToneMapping;
-  r.toneMappingExposure = 1.05;
+  r.toneMappingExposure = 1.3;
   return r;
 }
 
 function lights(scene: THREE.Scene, center: THREE.Vector3, span: number) {
-  scene.add(new THREE.HemisphereLight(0xffe6c0, 0x4a3b28, 1.25));
-  const sun = new THREE.DirectionalLight(0xfff0d6, 2.4);
+  scene.add(new THREE.HemisphereLight(0xffdcae, 0x3a2c1e, 0.9));
+  const sun = new THREE.DirectionalLight(0xffe2b4, 3.1);
   sun.position.set(center.x - 22, 40, center.z + 6);
   sun.target.position.copy(center);
   sun.castShadow = true;

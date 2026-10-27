@@ -32,7 +32,7 @@ export class View {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.98;
+    this.renderer.toneMappingExposure = 1.3;
     this.renderer.setClearColor(0x000000);
     container.appendChild(this.renderer.domElement);
 
@@ -43,8 +43,8 @@ export class View {
       Math.cos(CAM_YAW) * Math.cos(CAM_PITCH),
     );
 
-    this.scene.add(new THREE.HemisphereLight(0xffdcae, 0x3a2c1e, 1.05));
-    this.sun = new THREE.DirectionalLight(0xffe4bc, 2.7);
+    this.scene.add(new THREE.HemisphereLight(0xffdcae, 0x3a2c1e, 0.9));
+    this.sun = new THREE.DirectionalLight(0xffe2b4, 3.1);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     const sc = this.sun.shadow.camera;

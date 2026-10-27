@@ -5,8 +5,8 @@
 import type { LevelDef } from '../world/level';
 import type { CritterDef } from '../world/critter';
 
-const CONCRETE = 0xa39a88;
-const PLASTER = 0xb8a98c;
+const CONCRETE = 0x9e988c;
+const PLASTER = 0xc4b8a0;
 const FLOOR = 0x7d7466;
 
 export const KIBBUTZ: LevelDef = {
@@ -14,7 +14,7 @@ export const KIBBUTZ: LevelDef = {
   name: 'Кибуц Нахаль-Ор',
   cols: 48,
   rows: 56,
-  groundColor: 0xb09872,
+  groundColor: 0xd2b27a,
   props: [
     { type: 'hatch', u: 6, v: 43 },
     {
@@ -49,8 +49,8 @@ export const KIBBUTZ: LevelDef = {
     { type: 'rubble', u: 8, v: 31, w: 1.8, d: 1.5 },
     { type: 'rubble', u: 30, v: 5, w: 2, d: 2 },
     { type: 'sign', u: 17, v: 45.5, text: 'נחל אור', sub: 'Кибуц Нахаль-Ор', id: 'gateSign' },
-    { type: 'sandbags', u: 22, v: 46.5, w: 2.8, rot: -30 },
-    { type: 'sandbags', u: 12, v: 46.5, w: 2.8, rot: -30 },
+    { type: 'sandbags', u: 22, v: 46.5, w: 2.8, rot: 45 },
+    { type: 'sandbags', u: 12, v: 46.5, w: 2.8, rot: 45 },
     {
       type: 'box', u: 30.5, v: 10.5, w: 1.2, d: 0.9, h: 0.25, color: 0xd8d0bc, low: true,
       name: 'Кости', desc: 'Обглоданные кости. Козьи. Кажется, козьи.', id: 'bones',

@@ -15,8 +15,10 @@ Art style: 1990s pre-rendered isometric CRPG, exactly like Fallout 2 (1998) and 
 
 **CAMERA** (только для фонов локаций)
 ```
-Camera: strict orthographic isometric projection from above, identical to the Fallout 2 game camera: about 26 degrees above the horizon, no perspective distortion, parallel lines stay parallel. Building walls follow two diagonals: one rises gently towards the upper right (slope about 1:4), the other descends steeply towards the lower right (slope about 3:4). Match the camera angle of the attached reference image exactly.
+Camera: classic 2:1 isometric game view, orthographic, no perspective distortion, parallel lines stay parallel. Camera rotated 45 degrees and tilted 30 degrees down from the horizon, so building walls follow the two diagonals of the image at a 1:2 slope (26.6 degrees). Match the camera angle and scale of the attached reference image exactly.
 ```
+
+> Ракурс сверен по вашей библии стиля: Flow сам рисует именно так, и игра теперь использует тот же угол.
 
 **NEGATIVE** (если в Flow есть поле «чего избегать»)
 ```
@@ -27,7 +29,7 @@ perspective, fisheye, vanishing point, top-down flat view, side view, characters
 
 ## 1. Библия стиля (сделать первой)
 
-Цель — 8–10 картинок, по которым мы утвердим вид игры. Сгенерируйте по 2–4 варианта каждого промпта и выберите лучшие. Прикрепите `docs/guides/grid.png` как референс ракурса.
+Цель — 8–10 картинок, по которым мы утвердим вид игры. **Первая партия (S1–S3) получена и одобрена** — лежит в `assets/incoming/style/`. Сгенерируйте по 2–4 варианта каждого промпта и выберите лучшие. Прикрепите `docs/guides/grid.png` как референс ракурса.
 
 **S1. Руины кибуца, общий вид**
 ```
