@@ -64,6 +64,8 @@ JOINTS = {
 }
 J = JOINTS[C['body']]
 NECK_Z = J['neck']
+# Насколько опустить руки из A-позы базовой модели (у женской они отведены сильнее).
+ARM_DOWN = 26 if C['body'] == 'male' else 17
 
 # ---------------------------------------------------------------- сцена
 
@@ -160,6 +162,37 @@ def skin(arm, objs):
     arm.select_set(True)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+    for o in objs:
+        counts = {g.name: 0 for g in o.vertex_groups}
+        for v in o.data.vertices:
+            for g in v.groups:
+                if g.weight > 0.3:
+                    counts[o.vertex_groups[g.group].name] += 1
+        empty = [b.name for b in arm.data.bones if b.use_deform and not counts.get(b.name)]
+        if empty:
+            print('Автовеса не сработали для', empty, '— считаю веса по расстоянию до костей')
+            distance_weights(o, arm)
+
+def distance_weights(o, arm):
+    """Запасной вариант: вес вершины по расстоянию до отрезков костей (мягкий минимум)."""
+    segs = []
+    for b in arm.data.bones:
+        if b.use_deform:
+            segs.append((b.name, arm.matrix_world.inverted() @ (arm.matrix_world @ b.head_local), b.tail_local))
+    for g in list(o.vertex_groups):
+        o.vertex_groups.remove(g)
+    groups = {n: o.vertex_groups.new(name=n) for n, _, _ in segs}
+    def dist(p, a, b):
+        ab = b - a
+        t = max(0.0, min(1.0, (p - a).dot(ab) / max(1e-9, ab.dot(ab))))
+        return (a + ab * t - p).length
+    for v in o.data.vertices:
+        ds = sorted((dist(v.co, a, b), n) for n, a, b in segs)
+        d0 = ds[0][0]
+        ws = [(math.exp(-(d - d0) / 0.02), n) for d, n in ds[:3] if d - d0 < 0.06]
+        tot = sum(w for w, _ in ws)
+        for w, n in ws:
+            groups[n].add([v.index], w / tot, 'REPLACE')
 
 def parent_to_bone(obj, arm, bone):
     mw = obj.matrix_world.copy()
@@ -336,7 +369,9 @@ def make_outfit(body, arm):
 
 def ring_at(body, z, pad, height, name):
     """Кольцо (ремень) по сечению тела на высоте z."""
-    vs = [v.co for v in body.data.vertices if abs(v.co.z - z) < 0.02 and abs(v.co.x) < 0.25]
+    # Только торс: руки на этой высоте не должны раздувать обхват.
+    lim = J['shoulder'][0] + 0.02
+    vs = [v.co for v in body.data.vertices if abs(v.co.z - z) < 0.02 and abs(v.co.x) < lim]
     pts = []
     for i in range(48):
         a = 2 * math.pi * i / 48
@@ -468,7 +503,7 @@ def rot(arm, bone, x=0, y=0, z=0):
 
 def base_pose(arm, k=1.0):
     """Из A-позы — руки вдоль тела."""
-    rot(arm, 'uarm_R', 0, 0, -26 * k); rot(arm, 'uarm_L', 0, 0, 26 * k)
+    rot(arm, 'uarm_R', 0, 0, -ARM_DOWN * k); rot(arm, 'uarm_L', 0, 0, ARM_DOWN * k)
     rot(arm, 'farm_R', -8, 0, 0); rot(arm, 'farm_L', -8, 0, 0)
 
 def pose(arm, anim, t, weapon):
@@ -494,7 +529,7 @@ def pose(arm, anim, t, weapon):
         ar = -armA * s; al = armA * s
         if weapon == 'pistol':
             ar *= 0.4
-        rot(arm, 'uarm_R', ar, 0, -26 + (8 if run else 0)); rot(arm, 'uarm_L', al, 0, 26 - (8 if run else 0))
+        rot(arm, 'uarm_R', ar, 0, -ARM_DOWN + (8 if run else 0)); rot(arm, 'uarm_L', al, 0, ARM_DOWN - (8 if run else 0))
         rot(arm, 'farm_R', -(75 if run else (30 if weapon == 'pistol' else 15)), 0, 0)
         rot(arm, 'farm_L', -(75 if run else 15), 0, 0)
         rot(arm, 'spine', -(12 if run else 3), 6 * s, 0)
@@ -507,10 +542,10 @@ def pose(arm, anim, t, weapon):
         if weapon == 'pistol':
             # Прицел: рука вперёд, кисть выпрямлена, левая поддерживает.
             rec = 12 if 0.33 <= t < 0.5 else 0
-            rot(arm, 'uarm_R', -62 * k - rec * k, 0, -26 + 20 * k)
+            rot(arm, 'uarm_R', -62 * k - rec * k, 0, -ARM_DOWN + 20 * k)
             rot(arm, 'farm_R', -10 * k - 20 * (1 - k), 0, 0)
             rot(arm, 'hand_R', 55 * k + 10 * (1 - k), 0, 0)
-            rot(arm, 'uarm_L', -55 * k, 0, 26 - 38 * k)
+            rot(arm, 'uarm_L', -55 * k, 0, ARM_DOWN - 38 * k)
             rot(arm, 'farm_L', -40 * k, 0, 0)
             rot(arm, 'chest', 0, 0, 12 * k)
             rot(arm, 'head', 0, 0, -6 * k)
@@ -520,7 +555,7 @@ def pose(arm, anim, t, weapon):
             strike = max(0.0, min(1.0, (t - 0.35) / 0.25))
             back = 1 - max(0.0, min(1.0, (t - 0.75) / 0.25))
             ang = (40 * wind - 120 * strike) * back
-            rot(arm, 'uarm_R', ang, 0, -26 + 15 * strike * back)
+            rot(arm, 'uarm_R', ang, 0, -ARM_DOWN + 15 * strike * back)
             rot(arm, 'farm_R', -60 * wind * (1 - strike) - 10, 0, 0)
             rot(arm, 'chest', 0, 0, (-15 * wind + 30 * strike) * back)
             rot(arm, 'thigh_L', -20 * strike * back, 0, 0)
@@ -529,7 +564,7 @@ def pose(arm, anim, t, weapon):
     if anim == 'hit':
         k = math.sin(t * math.pi)
         rot(arm, 'spine', 14 * k, 0, 0); rot(arm, 'chest', 10 * k, 0, 0); rot(arm, 'head', 18 * k, 0, 0)
-        rot(arm, 'uarm_R', 20 * k, 0, -26 - 15 * k); rot(arm, 'uarm_L', 20 * k, 0, 26 + 15 * k)
+        rot(arm, 'uarm_R', 20 * k, 0, -ARM_DOWN - 15 * k); rot(arm, 'uarm_L', 20 * k, 0, ARM_DOWN + 15 * k)
         hips.location = (0, 0.03 * k, 0)
         return
     if anim == 'death':
@@ -543,8 +578,8 @@ def pose(arm, anim, t, weapon):
         rot(arm, 'shin_L', 50 * math.sin(k * math.pi) + 25 * e, 0, 0)
         root.rotation_euler = (math.radians(86 * e), 0, 0)
         root.location = (0, 0.06 * e, -0.02 + 0.13 * e)
-        rot(arm, 'uarm_R', -40 * math.sin(k * math.pi) - 20 * e, 0, -26 - 50 * e)
-        rot(arm, 'uarm_L', -30 * math.sin(k * math.pi) - 10 * e, 0, 26 + 60 * e)
+        rot(arm, 'uarm_R', -40 * math.sin(k * math.pi) - 20 * e, 0, -ARM_DOWN - 50 * e)
+        rot(arm, 'uarm_L', -30 * math.sin(k * math.pi) - 10 * e, 0, ARM_DOWN + 60 * e)
         rot(arm, 'farm_R', -30 * e, 0, 0); rot(arm, 'farm_L', -50 * e, 0, 0)
         rot(arm, 'head', 25 * e, 15 * e, 0)
         return
