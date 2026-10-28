@@ -56,6 +56,14 @@ export const CRITTERS: Record<string, CritterDef> = {
     inventory: [{ id: 'asimon', qty: 5 }],
     barks: ['Я быстро. Ты даже не заметишь.'],
   },
+  raiderShotgun: {
+    id: 'raiderShotgun', sprite: 'raider', name: 'Мародёр с обрезом', acc: 'мародёра', kind: 'human', faction: 'raiders', xp: 90,
+    desc: 'Главарь шайки в доспехе из покрышек. Обрез держит у бедра, как продолжение руки.',
+    sheet: { base: { st: 7, pe: 5, en: 7, ch: 4, in: 4, ag: 5, lk: 5 }, tags: ['smallGuns'] },
+    hand: 'sawnoff', armor: 'tireArmor',
+    inventory: [{ id: 'shell', qty: 6 }, { id: 'asimon', qty: 25 }, { id: 'water', qty: 1 }],
+    barks: ['Два ствола — два ответа на любой вопрос.', 'Положи всё на песок и иди.'],
+  },
   trader: {
     id: 'trader', sprite: 'shlomo', name: 'Мордехай', acc: 'Мордехая', kind: 'human', faction: 'traders',
     portrait: { image: 'portraits/mordechai.jpg', idle: 'portraits/mordechai-idle.mp4', talk: 'portraits/mordechai-talk.mp4' },
@@ -66,6 +74,8 @@ export const CRITTERS: Record<string, CritterDef> = {
     inventory: [
       { id: 'stim', qty: 4 }, { id: 'ammo9', qty: 60 }, { id: 'jacket', qty: 1 }, { id: 'loof', qty: 6 },
       { id: 'water', qty: 5 }, { id: 'knife', qty: 1 }, { id: 'pistol9', qty: 1, loaded: 0 }, { id: 'asimon', qty: 300 },
+      { id: 'machete', qty: 1 }, { id: 'sawnoff', qty: 1, loaded: 0 }, { id: 'shell', qty: 24 }, { id: 'uzi', qty: 1, loaded: 0 },
+      { id: 'galil', qty: 1, loaded: 0 }, { id: 'ammo556', qty: 20 }, { id: 'tireArmor', qty: 1 }, { id: 'metalArmor', qty: 1 },
     ],
     barks: ['Вода, патроны, шприц-тюбики. Всё честно.', 'Беэр-Шева? Два дня пути, если повезёт.'],
   },

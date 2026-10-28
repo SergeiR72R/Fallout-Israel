@@ -505,10 +505,45 @@ def rot(arm, bone, x=0, y=0, z=0):
     pb = arm.pose.bones[bone]
     pb.rotation_euler = (math.radians(x), math.radians(y), math.radians(z))
 
+def aim(arm, name, d):
+    """Повернуть кость так, чтобы она смотрела в направлении d (пространство скелета, родитель в покое).
+    Через минимальный поворот: оси сгиба предплечья остаются в плоскости шага."""
+    b = arm.data.bones[name]
+    R = b.matrix_local.to_3x3()
+    q = R.col[1].rotation_difference(Vector(d).normalized()).to_matrix()
+    arm.pose.bones[name].rotation_euler = (R.inverted() @ q @ R).to_euler('XYZ')
+
+# Руки висят вдоль тела: плечо чуть отведено наружу, чтобы кисти были у бёдер, а не перед животом.
+ARM_OUT = 0.13
+
+def hang(arm, side, swing=0.0, out=ARM_OUT):
+    """Плечо вниз-наружу; swing — мах вперёд (+) или назад (−), градусы."""
+    a = math.radians(swing)
+    x = out if side == 'L' else -out
+    aim(arm, f'uarm_{side}', (x, -math.sin(a), -math.cos(a)))
+
 def base_pose(arm, k=1.0):
     """Из A-позы — руки вдоль тела."""
-    rot(arm, 'uarm_R', 0, 0, -ARM_DOWN * k); rot(arm, 'uarm_L', 0, 0, ARM_DOWN * k)
+    if k == 1.0:
+        hang(arm, 'R'); hang(arm, 'L')
+    else:
+        rot(arm, 'uarm_R', 0, 0, -ARM_DOWN * k); rot(arm, 'uarm_L', 0, 0, ARM_DOWN * k)
     rot(arm, 'farm_R', -8, 0, 0); rot(arm, 'farm_L', -8, 0, 0)
+
+def ground(arm):
+    """Опустить или поднять персонажа так, чтобы нижняя точка ботинок касалась пола."""
+    boots = bpy.data.objects.get('boots')
+    if not boots:
+        return
+    arm.location.z = 0
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    e = boots.evaluated_get(dg)
+    m = e.to_mesh()
+    mw = e.matrix_world
+    low = min((mw @ v.co).z for v in m.vertices)
+    e.to_mesh_clear()
+    arm.location.z = -low
 
 def pose(arm, anim, t, weapon):
     """t ∈ [0,1). Знаки осей откалиброваны пробным рендером (см. --preview)."""
@@ -522,24 +557,37 @@ def pose(arm, anim, t, weapon):
         return
     if anim in ('walk', 'run'):
         run = anim == 'run'
-        A = 36 if run else 24
-        rot(arm, 'thigh_R', A * s - (10 if run else 2), 0, 0)
-        rot(arm, 'thigh_L', -A * s - (10 if run else 2), 0, 0)
-        kr = max(0, -s) * (70 if run else 40) + (15 if run else 5)
-        kl = max(0, s) * (70 if run else 40) + (15 if run else 5)
+        ph = 2 * math.pi * t
+        sw = math.sin(ph)                       # >0 — правая нога впереди
+        # Бедро: + назад, − вперёд (оси откалиброваны пробным рендером).
+        A = 40 if run else 30
+        lean = 12 if run else 2
+        rot(arm, 'thigh_R', -A * sw - lean, 0, 0)
+        rot(arm, 'thigh_L', A * sw - lean, 0, 0)
+        # Колено сгибается, пока нога переносится вперёд (пик — когда она проходит под телом),
+        # на опоре почти прямое.
+        def knee(phase):
+            swing = max(0.0, math.cos(phase - (0.05 if run else 0.3)))
+            return (14 if run else 5) + (95 if run else 42) * swing ** (1.3 if run else 1.6)
+        kr, kl = knee(ph), knee(ph + math.pi)
         rot(arm, 'shin_R', kr, 0, 0); rot(arm, 'shin_L', kl, 0, 0)
-        rot(arm, 'foot_R', -kr * 0.25, 0, 0); rot(arm, 'foot_L', -kl * 0.25, 0, 0)
-        armA = 40 if run else 18
-        ar = -armA * s; al = armA * s
-        if weapon == 'pistol':
-            ar *= 0.4
-        rot(arm, 'uarm_R', ar, 0, -ARM_DOWN + (8 if run else 0)); rot(arm, 'uarm_L', al, 0, ARM_DOWN - (8 if run else 0))
-        rot(arm, 'farm_R', -(75 if run else (30 if weapon == 'pistol' else 15)), 0, 0)
-        rot(arm, 'farm_L', -(75 if run else 15), 0, 0)
-        rot(arm, 'spine', -(12 if run else 3), 6 * s, 0)
-        rot(arm, 'chest', 0, -8 * s if run else -4 * s, 0)
-        hips.location = (0, 0, (0.03 if run else 0.015) * abs(c) - (0.04 if run else 0.01))
-        hips.rotation_euler = (0, math.radians(5 * s), 0)
+        # Стопа: носок вверх при постановке на пятку, вниз при толчке.
+        rot(arm, 'foot_R', -kr * 0.3 + 10 * math.sin(ph + 0.6), 0, 0)
+        rot(arm, 'foot_L', -kl * 0.3 + 10 * math.sin(ph + math.pi + 0.6), 0, 0)
+        # Руки качаются навстречу ногам вдоль тела.
+        armA = 42 if run else 22
+        hang(arm, 'R', -armA * sw * (0.35 if weapon == 'pistol' and not run else 1), out=ARM_OUT + (0.05 if run else 0))
+        hang(arm, 'L', armA * sw, out=ARM_OUT + (0.05 if run else 0))
+        elbow = 82 if run else 14
+        flexR = elbow + (0 if run else 10 * max(0.0, -sw)) + (16 if weapon == 'pistol' and not run else 0)
+        flexL = elbow + (0 if run else 10 * max(0.0, sw))
+        rot(arm, 'farm_R', -flexR, 0, 0)
+        rot(arm, 'farm_L', -flexL, 0, 0)
+        # Корпус: наклон вперёд, таз и плечи поворачиваются навстречу друг другу.
+        rot(arm, 'spine', -(10 if run else 3), 4 * sw, 0)
+        rot(arm, 'chest', 0, -(9 if run else 6) * sw, 0)
+        rot(arm, 'head', (6 if run else 2), 3 * sw, 0)
+        hips.rotation_euler = (0, math.radians((7 if run else 5) * sw), 0)
         return
     if anim == 'attack':
         k = math.sin(min(1, t * 1.6) * math.pi / 2) if t < 0.8 else (1 - (t - 0.8) / 0.2)
@@ -696,6 +744,10 @@ def render_all(arm):
         arm.rotation_euler = (0, 0, dirs[di])
         show_weapon(wset if wset != 'none' else None, flash=(wset == 'pistol' and anim == 'attack' and f == 2))
         pose(arm, anim, f / n if anim not in ('attack', 'hit', 'death') else f / max(1, n - 1), wset)
+        if anim in ('idle', 'walk', 'run'):
+            ground(arm)
+        else:
+            arm.location.z = 0
         bpy.context.view_layer.update()
         sc.render.filepath = os.path.join(OUT, f'{wset}_{anim}_{di}_{f}.png')
         bpy.ops.render.render(write_still=True)

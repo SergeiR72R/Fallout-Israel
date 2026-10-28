@@ -236,6 +236,16 @@ button { font-family: inherit; }
 .skill.pickable i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #000; background: #3a332a; flex: none; }
 .skill.pickable.tag i { background: radial-gradient(circle at 35% 30%, #ff8a6a, var(--red) 50%, #5a1408); }
 .skill:hover { background: rgba(255, 220, 150, .06); }
+.perkwin { width: 1000px; }
+.perk-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 520px; }
+.perk-list { overflow-y: auto; padding: 6px 8px; }
+.perk-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; font-size: 17px; cursor: pointer; }
+.perk-row span { flex: 1; }
+.perk-row b { color: var(--label); }
+.perk-row:hover { background: rgba(255, 220, 150, .06); }
+.perk-row.sel { background: rgba(255, 220, 150, .14); color: #fff4cf; }
+.perk-none { padding: 8px; font-size: 16px; line-height: 1.5; }
+.perk-req { margin-top: 12px; }
 
 .skilldex { width: 420px; display: flex; flex-direction: column; gap: 6px; }
 .sd-btn {

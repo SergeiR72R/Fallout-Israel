@@ -12,6 +12,14 @@ const P: Record<string, string> = {
   vest: '<path d="M22 10h6l4 6 4-6h6l6 8v34H16V18z"/><rect x="22" y="26" width="20" height="16" fill="#0004"/>',
   sting: '<path d="M12 50c10-4 18-12 22-24 2-6 6-12 14-14-2 6-4 10-8 14 4 0 8-2 10-4-4 10-14 20-38 28z"/>',
   water: '<path d="M24 14h16v6l4 4v26c0 3-2 5-5 5H25c-3 0-5-2-5-5V24l4-4z"/><rect x="26" y="8" width="12" height="7" rx="2"/>',
+  machete: '<path d="M6 48 L44 14 C50 10 58 12 58 18 C56 24 30 46 22 50 Z"/><rect x="2" y="46" width="14" height="7" rx="2" transform="rotate(-40 9 49)"/>',
+  uzi: '<path d="M8 20h40v8H34v6h-6l-2 16h-7l2-16h-7v-6H8z"/><rect x="48" y="22" width="10" height="3"/><rect x="22" y="34" width="5" height="14" transform="rotate(8 24 40)"/>',
+  sawnoff: '<path d="M4 22h36v5H4zM4 28h36v5H4z"/><path d="M40 20h8c4 0 6 3 6 6v3l-6 4v14c0 2-2 3-4 3h-4c-2 0-3-2-2-4l2-13h-0z"/>',
+  galil: '<path d="M2 26h12l4-3h26l4 3h14v6H48l-4 3v4l2 10h-6l-3-11h-7l-2 6h-5l1-6h-8l-6 6H4l6-8H2z"/><rect x="24" y="34" width="5" height="10"/>',
+  shell: '<g><rect x="14" y="20" width="10" height="26" rx="2"/><rect x="14" y="40" width="10" height="6" fill="#0005"/><rect x="28" y="20" width="10" height="26" rx="2"/><rect x="28" y="40" width="10" height="6" fill="#0005"/><rect x="42" y="20" width="10" height="26" rx="2"/><rect x="42" y="40" width="10" height="6" fill="#0005"/></g>',
+  ammo556: '<g><rect x="14" y="20" width="7" height="28" rx="1"/><path d="M14 20l3.5-8 3.5 8"/><rect x="28" y="20" width="7" height="28" rx="1"/><path d="M28 20l3.5-8 3.5 8"/><rect x="42" y="20" width="7" height="28" rx="1"/><path d="M42 20l3.5-8 3.5 8"/></g>',
+  tireArmor: '<path d="M22 10h20l8 8v34H14V18z"/><g fill="#0005"><rect x="16" y="22" width="32" height="5"/><rect x="16" y="32" width="32" height="5"/><rect x="16" y="42" width="32" height="5"/></g>',
+  metalArmor: '<path d="M20 10h24l8 10-4 6v26H16V26l-4-6z"/><g fill="#0004"><rect x="20" y="28" width="24" height="3"/><circle cx="22" cy="18" r="2"/><circle cx="42" cy="18" r="2"/></g>',
   asimon: '<circle cx="32" cy="32" r="18"/><rect x="29" y="18" width="6" height="28" fill="#0007"/>',
 };
 

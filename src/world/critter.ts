@@ -4,6 +4,7 @@ import { HumanLook, HumanRig, Rig, ScorpionRig } from './models';
 import { SpriteRig, getSheet } from './sprites';
 import { Sheet, SkillId, derived, effStats, newSheet, skillValue } from '../rules/stats';
 import { ITEMS, Stack, WeaponDef, def } from '../rules/items';
+import { perkRank } from '../rules/perks';
 
 export type Faction = 'player' | 'kibbutz' | 'monster' | 'raiders' | 'traders';
 export type FireMode = 'single' | 'aimed' | 'reload';
@@ -96,6 +97,8 @@ export class Critter {
   get sequence() { return this.m ? this.m.seq : derived(this.sheet).sequence; }
   get critChance() { return this.m ? this.m.crit : derived(this.sheet).crit; }
   get perception() { return this.m ? this.m.pe : effStats(this.sheet).pe; }
+  /** Восприятие для дальности стрельбы (перк «Снайпер» +2). */
+  get rangePerception() { return this.perception + (this.m ? 0 : 2 * perkRank(this.sheet, 'sharpshooter')); }
   get meleeBonus() { return this.m ? 0 : derived(this.sheet).meleeDmg; }
 
   get ac() {
@@ -103,7 +106,7 @@ export class Critter {
     return base + (this.armor ? def(this.armor).armor!.ac : 0) + this.acBonus;
   }
   get dt() { return (this.m?.dt ?? 0) + (this.armor ? def(this.armor).armor!.dt : 0); }
-  get dr() { return (this.m?.dr ?? 0) + (this.armor ? def(this.armor).armor!.dr : 0); }
+  get dr() { return (this.m?.dr ?? 0) + (this.armor ? def(this.armor).armor!.dr : 0) + (this.m ? 0 : 10 * perkRank(this.sheet, 'toughness')); }
 
   skill(id: SkillId) {
     return this.m ? this.m.skill : skillValue(this.sheet, id);
@@ -141,6 +144,6 @@ export class Critter {
     if (!(this.rig instanceof HumanRig) && !(this.rig instanceof SpriteRig)) return;
     const s = this.hands[this.activeHand];
     const id = s?.id;
-    this.rig.setWeapon(id === 'pistol9' ? 'pistol' : id === 'knife' ? 'knife' : id === 'rifle' ? 'rifle' : null);
+    this.rig.setWeapon(id ? ITEMS[id]?.weapon?.pose ?? null : null);
   }
 }

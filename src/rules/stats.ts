@@ -2,6 +2,8 @@
 // 3 «отмеченных» навыка, черты характера. Формулы — как в оригинале.
 // Названия свои: система называется «Профиль» (как армейский медпрофиль).
 
+import { PerkId, perkRank, perkSkillBonus } from './perks';
+
 export type StatId = 'st' | 'pe' | 'en' | 'ch' | 'in' | 'ag' | 'lk';
 export type Stats = Record<StatId, number>;
 
@@ -64,6 +66,9 @@ export interface Sheet {
   level: number;
   xp: number;
   skillPoints: number;
+  /** Взятые перки и их ранги; perkPoints — сколько перков можно выбрать сейчас. */
+  perks?: Partial<Record<PerkId, number>>;
+  perkPoints?: number;
 }
 
 export const STAT_MIN = 1, STAT_MAX = 10, FREE_STAT_POINTS = 5;
@@ -72,7 +77,7 @@ export function newSheet(): Sheet {
   return {
     name: 'Ноам', age: 25, sex: 'm',
     base: { st: 5, pe: 5, en: 5, ch: 5, in: 5, ag: 5, lk: 5 },
-    tags: [], traits: [], skillAdd: {}, level: 1, xp: 0, skillPoints: 0,
+    tags: [], traits: [], skillAdd: {}, level: 1, xp: 0, skillPoints: 0, perks: {}, perkPoints: 0,
   };
 }
 
@@ -88,7 +93,7 @@ export function effStats(sh: Sheet): Stats {
 export function skillValue(sh: Sheet, id: SkillId): number {
   const s = effStats(sh);
   const def = SKILLS.find((d) => d.id === id)!;
-  let v = def.base(s) + (sh.tags.includes(id) ? 20 : 0) + (sh.skillAdd[id] ?? 0);
+  let v = def.base(s) + (sh.tags.includes(id) ? 20 : 0) + (sh.skillAdd[id] ?? 0) + perkSkillBonus(sh, id);
   if (sh.traits.includes('gifted')) v -= 10;
   return Math.max(0, v);
 }
@@ -101,22 +106,23 @@ export interface Derived {
 export function derived(sh: Sheet): Derived {
   const s = effStats(sh);
   const t = (id: TraitId) => sh.traits.includes(id);
+  const pk = (id: PerkId) => perkRank(sh, id);
   return {
-    maxHp: 15 + s.st + 2 * s.en + (sh.level - 1) * (2 + Math.floor(s.en / 2)),
-    ap: 5 + Math.floor(s.ag / 2) - (t('bruiser') ? 2 : 0),
+    maxHp: 15 + s.st + 2 * s.en + (sh.level - 1) * (2 + Math.floor(s.en / 2)) + 4 * sh.level * pk('lifegiver'),
+    ap: 5 + Math.floor(s.ag / 2) - (t('bruiser') ? 2 : 0) + pk('actionBoy'),
     ac: t('kamikaze') ? 0 : s.ag,
-    meleeDmg: Math.max(1, s.st - 5),
-    carry: t('smallFrame') ? 25 + 15 * s.st : 25 + 25 * s.st,
-    sequence: 2 * s.pe + (t('kamikaze') ? 5 : 0),
-    healRate: Math.max(1, Math.floor(s.en / 3)),
-    crit: s.lk + (t('finesse') ? 10 : 0),
+    meleeDmg: Math.max(1, s.st - 5) + 2 * pk('bonusHth'),
+    carry: (t('smallFrame') ? 25 + 15 * s.st : 25 + 25 * s.st) + 50 * pk('strongBack'),
+    sequence: 2 * s.pe + (t('kamikaze') ? 5 : 0) + 2 * pk('earlierSequence'),
+    healRate: Math.max(1, Math.floor(s.en / 3)) + 2 * pk('fasterHealing'),
+    crit: s.lk + (t('finesse') ? 10 : 0) + 5 * pk('moreCriticals'),
   };
 }
 
 export const xpForLevel = (lvl: number) => (1000 * (lvl - 1) * lvl) / 2;
 
 export function skillPointsPerLevel(sh: Sheet): number {
-  return Math.max(1, 5 + 2 * effStats(sh).in - (sh.traits.includes('gifted') ? 5 : 0));
+  return Math.max(1, 5 + 2 * effStats(sh).in - (sh.traits.includes('gifted') ? 5 : 0) + 2 * perkRank(sh, 'educated'));
 }
 
 /** Стоимость повышения навыка на 1 шаг (как в Fallout: дороже после 100%). */

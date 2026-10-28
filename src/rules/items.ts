@@ -12,6 +12,8 @@ export interface WeaponDef {
   mag?: number;
   /** Добавлять урон ближнего боя от Силы. */
   addMelee?: boolean;
+  /** Набор кадров спрайта, которым персонаж держит оружие. */
+  pose?: 'pistol' | 'knife';
   verb: string;
 }
 
@@ -40,12 +42,40 @@ export const ITEMS: Record<string, ItemDef> = {
   knife: {
     id: 'knife', name: 'Армейский нож', kind: 'weapon', weight: 1, value: 40, glyph: '🗡',
     desc: 'Нож из довоенного армейского набора. Лезвие в зазубринах, но острое.',
-    weapon: { skill: 'melee', dmg: [1, 6], ap: 3, range: 1, melee: true, addMelee: true, verb: 'режете' },
+    weapon: { skill: 'melee', dmg: [1, 6], ap: 3, range: 1, melee: true, addMelee: true, pose: 'knife', verb: 'режете' },
   },
   pistol9: {
     id: 'pistol9', name: '9-мм пистолет «Шмира»', kind: 'weapon', weight: 3, value: 250, glyph: '🔫',
     desc: 'Пистолет охраны убежища. Магазин на 10 патронов. Надёжный, как скала.',
-    weapon: { skill: 'smallGuns', dmg: [5, 12], ap: 5, range: 20, ammo: 'ammo9', mag: 10, verb: 'стреляете в' },
+    weapon: { skill: 'smallGuns', dmg: [5, 12], ap: 5, range: 20, ammo: 'ammo9', mag: 10, pose: 'pistol', verb: 'стреляете в' },
+  },
+  machete: {
+    id: 'machete', name: 'Мачете', kind: 'weapon', weight: 3, value: 120, glyph: '🗡',
+    desc: 'Широкий клинок для рубки финиковых листьев. Рубит и не только листья.',
+    weapon: { skill: 'melee', dmg: [3, 10], ap: 4, range: 1, melee: true, addMelee: true, pose: 'knife', verb: 'рубите' },
+  },
+  uzi: {
+    id: 'uzi', name: 'Пистолет-пулемёт «Узи»', kind: 'weapon', weight: 4, value: 650, glyph: '🔫',
+    desc: 'Довоенный «Узи» с потёртым воронением. Лёгкий, скорострельный, ест патроны 9 мм.',
+    weapon: { skill: 'smallGuns', dmg: [5, 12], ap: 4, range: 15, ammo: 'ammo9', mag: 25, pose: 'pistol', verb: 'стреляете в' },
+  },
+  sawnoff: {
+    id: 'sawnoff', name: 'Обрез', kind: 'weapon', weight: 5, value: 350, glyph: '🔫',
+    desc: 'Охотничье двуствольное ружьё со спиленными стволами. Вблизи страшное, издалека бесполезное.',
+    weapon: { skill: 'smallGuns', dmg: [12, 24], ap: 5, range: 7, ammo: 'shell', mag: 2, pose: 'pistol', verb: 'стреляете в' },
+  },
+  galil: {
+    id: 'galil', name: 'Винтовка «Галиль»', kind: 'weapon', weight: 9, value: 1200, glyph: '🔫',
+    desc: 'Автоматическая винтовка с сошками и открывалкой для бутылок в цевье. Бьёт далеко и точно.',
+    weapon: { skill: 'smallGuns', dmg: [10, 22], ap: 5, range: 35, ammo: 'ammo556', mag: 20, pose: 'pistol', verb: 'стреляете в' },
+  },
+  shell: {
+    id: 'shell', name: 'Патроны 12 калибра', kind: 'ammo', weight: 0, value: 3, glyph: '⁍',
+    desc: 'Картечь в латунных гильзах. Перезаряжены кустарно, но стреляют.',
+  },
+  ammo556: {
+    id: 'ammo556', name: 'Патроны 5,56 мм', kind: 'ammo', weight: 0, value: 4, glyph: '⁍',
+    desc: 'Винтовочный патрон. Редкость: заводы встали сто лет назад.',
   },
   ammo9: {
     id: 'ammo9', name: 'Патроны 9 мм', kind: 'ammo', weight: 0, value: 2, glyph: '⁍',
@@ -72,6 +102,16 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'vest', name: 'Армейский бронежилет', kind: 'armor', weight: 10, value: 700, glyph: '🦺',
     desc: 'Довоенный бронежилет с керамическими пластинами. Одна пластина треснула.',
     armor: { ac: 15, dt: 2, dr: 25 },
+  },
+  tireArmor: {
+    id: 'tireArmor', name: 'Доспех из покрышек', kind: 'armor', weight: 15, value: 300, glyph: '🦺',
+    desc: 'Нарезанные автомобильные покрышки на проволоке. Пахнет резиной, держит нож.',
+    armor: { ac: 10, dt: 2, dr: 20 },
+  },
+  metalArmor: {
+    id: 'metalArmor', name: 'Металлический доспех', kind: 'armor', weight: 35, value: 1100, glyph: '🦺',
+    desc: 'Листы кузовного железа, выколоченные по фигуре. Тяжело, жарко, надёжно.',
+    armor: { ac: 10, dt: 4, dr: 30 },
   },
   sting: {
     id: 'sting', name: 'Жало скорпиона', kind: 'misc', weight: 1, value: 30, glyph: '🦂',

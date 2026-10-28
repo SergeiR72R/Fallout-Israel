@@ -15,6 +15,7 @@ import { WORLD, EncounterType, makeEncounter } from '../data/world';
 import { DIALOGS, DialogCtx, QuestState } from '../data/dialogs';
 import { AIM_PARTS, AimPart, hitChance, resolveAttack, partName } from '../rules/combat';
 import { Sheet, SkillId, derived, effStats, skillPointsPerLevel, xpForLevel } from '../rules/stats';
+import { PERK_EVERY, perkRank } from '../rules/perks';
 import { Stack, addItem, countItem, def, removeItem } from '../rules/items';
 import { sfx } from '../ui/sfx';
 import type { UI } from '../ui/ui';
@@ -767,7 +768,7 @@ export class Game {
       skill: att.skill(w.skill),
       targetAc: tgt.ac,
       distance: distance(att.hex, tgt.hex),
-      perception: att.perception,
+      perception: att.rangePerception,
       melee: !!w.melee,
       aim,
     });
@@ -890,6 +891,7 @@ export class Game {
 
   gainXp(n: number) {
     const sh = this.player.sheet;
+    n = Math.round(n * (1 + 0.05 * perkRank(sh, 'swiftLearner')));
     sh.xp += n;
     this.ui.log(`Вы получаете ${n} очков опыта.`);
     while (sh.xp >= xpForLevel(sh.level + 1)) {
@@ -899,6 +901,10 @@ export class Game {
       this.player.hp += this.player.maxHp - before;
       sfx.levelUp();
       this.ui.log(`Вы достигли уровня ${sh.level}! Распределите очки навыков в окне персонажа (C).`, '#a0e070');
+      if (sh.level % PERK_EVERY === 0) {
+        sh.perkPoints = (sh.perkPoints ?? 0) + 1;
+        this.ui.log('Можно выбрать новый перк: окно персонажа (C) → «ПЕРК».', '#a0e070');
+      }
       this.ui.flashLevel();
     }
     this.ui.refresh();

@@ -16,6 +16,7 @@ import { sfx } from './sfx';
 import { buildWorldMap } from './worldmap';
 import { stackable } from '../rules/items';
 import { clamp } from '../core/util';
+import { PERKS, PerkDef, availablePerks, perkRank } from '../rules/perks';
 
 export type CursorKind = keyof typeof CURSORS;
 
@@ -27,6 +28,11 @@ function redButton(label: string, act: () => void, cls = '') {
   const b = el('button', `rbtn ${cls}`, `<i></i><span>${label}</span>`);
   b.addEventListener('click', (e) => { e.stopPropagation(); sfx.click(); act(); });
   return b;
+}
+
+function perkList(sh: { perks?: Partial<Record<string, number>> }) {
+  return PERKS.filter((p) => (sh.perks?.[p.id] ?? 0) > 0)
+    .map((p) => p.name + (p.ranks > 1 ? ` (${sh.perks![p.id]})` : '')).join(', ');
 }
 
 export class UI {
@@ -180,7 +186,7 @@ export class UI {
       <div class="iname">${esc(d.name)}${w.ammo ? ` <b>${s.loaded ?? 0}/${w.mag}</b>` : ''}</div>
       <div class="apcost">ОД <b>${cost}</b></div>${ammo}`;
     this.itemBtn.classList.toggle('targeting', this.game.targeting === 'attack');
-    this.levelLamp.classList.toggle('on', p.sheet.skillPoints > 0);
+    this.levelLamp.classList.toggle('on', p.sheet.skillPoints > 0 || (p.sheet.perkPoints ?? 0) > 0);
     if (this.modal?.el.dataset.refresh) (this.modal.el as any).refresh?.();
   }
 
@@ -381,7 +387,8 @@ export class UI {
         <div>Опыт: <b>${sh.xp}</b></div>
         <div>След. уровень: <b>${xpForLevel(sh.level + 1)}</b></div>
         <div>Карма: <b>${g.karma}</b></div>
-        <div class="dim">Черты: ${sh.traits.length ? sh.traits.map((t) => TRAITS.find((x) => x.id === t)!.name).join(', ') : 'нет'}</div>`);
+        <div class="dim">Черты: ${sh.traits.length ? sh.traits.map((t) => TRAITS.find((x) => x.id === t)!.name).join(', ') : 'нет'}</div>
+        <div class="dim">Перки: ${perkList(sh) || 'нет'}</div>`);
       const descBox = el('div', 'char-desc crt');
       const renderDesc = () => { descBox.innerHTML = `<div class="hdr">${esc(desc.title)}</div>${esc(desc.text)}`; };
       renderDesc();
@@ -424,8 +431,56 @@ export class UI {
       w.insertBefore(body, w.querySelector('.inv-actions'));
     };
     const actions = el('div', 'inv-actions');
+    if ((sh.perkPoints ?? 0) > 0) actions.append(redButton('ПЕРК', () => this.openPerks()));
     actions.append(redButton('ГОТОВО', () => this.closeModal()));
     w.append(actions);
+    render();
+    this.openModal(w, () => this.refresh());
+  }
+
+  /** Выбор перка, как в Fallout 2: список доступных слева, описание справа. */
+  openPerks() {
+    const g = this.game;
+    const p = g.player;
+    const sh = p.sheet;
+    const w = this.window('ВЫБОР ПЕРКА', 'perkwin');
+    const list = el('div', 'perk-list sunk');
+    const descBox = el('div', 'char-desc crt');
+    const body = el('div', 'perk-body');
+    body.append(list, descBox);
+    const perks = availablePerks(sh, effStats(sh));
+    let sel: PerkDef | null = perks[0] ?? null;
+    const reqText = (pd: PerkDef) => {
+      const r = Object.entries(pd.req ?? {}).map(([k, v]) => `${STATS.find((x) => x.id === k)!.short} ${v}`);
+      return [`уровень ${pd.level}`, ...r].join(', ');
+    };
+    const render = () => {
+      list.innerHTML = '';
+      if (!perks.length) list.appendChild(el('div', 'dim perk-none', 'Подходящих перков пока нет. Поднимите характеристики или уровень.'));
+      for (const pd of perks) {
+        const r = perkRank(sh, pd.id);
+        const row = el('div', `perk-row${sel === pd ? ' sel' : ''}`, `<span>${esc(pd.name)}</span><b>${pd.ranks > 1 ? `${r + 1}/${pd.ranks}` : ''}</b>`);
+        row.onclick = () => { sel = pd; sfx.click(); render(); };
+        row.ondblclick = () => { sel = pd; take(); };
+        list.appendChild(row);
+      }
+      descBox.innerHTML = sel
+        ? `<div class="hdr">${esc(sel.name)}</div>${esc(sel.desc)}<div class="dim perk-req">Требования: ${esc(reqText(sel))}${sel.ranks > 1 ? `. Рангов: ${sel.ranks}` : ''}</div>`
+        : '<div class="hdr">Перки</div>Каждые три уровня можно выбрать перк — особую способность.';
+    };
+    const take = () => {
+      if (!sel) { sfx.denied(); return; }
+      const before = p.maxHp;
+      sh.perks = { ...(sh.perks ?? {}), [sel.id]: perkRank(sh, sel.id) + 1 };
+      sh.perkPoints = Math.max(0, (sh.perkPoints ?? 0) - 1);
+      p.hp += Math.max(0, p.maxHp - before);
+      this.log(`Новый перк: ${sel.name}.`, '#a0e070');
+      sfx.levelUp();
+      this.openCharacter();
+    };
+    const actions = el('div', 'inv-actions');
+    actions.append(redButton('ВЫБРАТЬ', take), redButton('ОТМЕНА', () => this.openCharacter()));
+    w.append(body, actions);
     render();
     this.openModal(w, () => this.refresh());
   }

@@ -143,6 +143,7 @@ export function makeEncounter(type: EncounterType, seed: number): LevelDef {
     props.push({ type: 'crate', u: su, v: sv, id: 'stash', name: 'Тайник мародёров', items: [{ id: 'ammo9', qty: 6 + Math.floor(R() * 10) }, { id: 'asimon', qty: 5 + Math.floor(R() * 20) }, { id: 'water', qty: 1 }] });
     spawns.push(spawnAt('raider0', 'raider', 560, 455), spawnAt('raiderKnife0', 'raiderKnife', 450, 545));
     if (R() < 0.6) spawns.push(spawnAt('raider1', 'raider', 640, 530));
+    if (R() < 0.45) spawns.push(spawnAt('boss', 'raiderShotgun', 700, 450));
   } else if (type === 'scorpions') {
     props.push(
       seg([500, 40], [760, 40], 3, 2),           // скалы сверху
