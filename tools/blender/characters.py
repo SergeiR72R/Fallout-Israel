@@ -475,7 +475,12 @@ def make_weapons(arm):
     em = fm.node_tree.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (1.0, 0.55, 0.15, 1); em.inputs['Strength'].default_value = 6
     fm.node_tree.links.new(em.outputs[0], fm.node_tree.nodes['Material Output'].inputs['Surface'])
     flash.data.materials.append(fm)
+    # Ствол — вдоль кисти (вниз в позе покоя), как пистолет лежит в руке; чуть крупнее
+    # настоящего, чтобы читался в спрайте (в Fallout оружие тоже утрировано).
+    hold = (Matrix.Translation(palm) @ Matrix.Rotation(math.radians(90), 4, 'X')
+            @ Matrix.Scale(1.35, 4) @ Matrix.Translation(-palm))
     for p in parts + [flash]:
+        p.matrix_world = hold @ p.matrix_world
         parent_to_bone(p, arm, 'hand_R')
     WEAPONS['pistol'] = parts
     WEAPONS['flash'] = [flash]
@@ -552,7 +557,7 @@ def pose(arm, anim, t, weapon):
     hips = arm.pose.bones['hips']
     base_pose(arm)
     if weapon == 'pistol':
-        rot(arm, 'farm_R', -30, 0, 0); rot(arm, 'hand_R', 10, 0, 0)
+        rot(arm, 'farm_R', -30, 0, 0)
     if anim == 'idle':
         return
     if anim in ('walk', 'run'):
@@ -593,14 +598,16 @@ def pose(arm, anim, t, weapon):
         k = math.sin(min(1, t * 1.6) * math.pi / 2) if t < 0.8 else (1 - (t - 0.8) / 0.2)
         if weapon == 'pistol':
             # Прицел: рука вперёд, кисть выпрямлена, левая поддерживает.
-            rec = 12 if 0.33 <= t < 0.5 else 0
-            rot(arm, 'uarm_R', -62 * k - rec * k, 0, -ARM_DOWN + 20 * k)
-            rot(arm, 'farm_R', -10 * k - 20 * (1 - k), 0, 0)
-            rot(arm, 'hand_R', 55 * k + 10 * (1 - k), 0, 0)
-            rot(arm, 'uarm_L', -55 * k, 0, ARM_DOWN - 38 * k)
+            rec = 10 if 0.33 <= t < 0.5 else 0
+            a = math.radians(84 * k + rec * k)
+            aim(arm, 'uarm_R', (-ARM_OUT * (1 - k) + 0.08 * k, -math.sin(a), -math.cos(a)))
+            rot(arm, 'farm_R', -30 * (1 - k), 0, 0)
+            # Левая рука поддерживает рукоять снизу.
+            b = math.radians(42 * k)
+            aim(arm, 'uarm_L', (ARM_OUT * (1 - k) - 0.42 * k, -math.sin(b), -math.cos(b)))
             rot(arm, 'farm_L', -40 * k, 0, 0)
-            rot(arm, 'chest', 0, 0, 12 * k)
-            rot(arm, 'head', 0, 0, -6 * k)
+            rot(arm, 'chest', 0, -10 * k, 0)
+            rot(arm, 'head', 4 * k, 6 * k, 0)
         else:
             # Удар/взмах ножом: замах назад, затем выпад вперёд.
             wind = math.sin(min(1, t / 0.35) * math.pi / 2)
