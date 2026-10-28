@@ -917,7 +917,8 @@ export class Game {
       }
     }
     this.karma -= 20;
-    const who = victim.def.faction === 'kibbutz' ? 'Обитатели кибуца становятся' : `${victim.name} становится`;
+    const who = victim.def.faction === 'kibbutz' ? 'Обитатели кибуца становятся'
+      : victim.def.faction === 'town' ? 'Жители Беэр-Шевы становятся' : `${victim.name} становится`;
     this.ui.log(`${who} враждебны!`.replace('становится враждебны', 'становится враждебным'), '#ff7050');
   }
 
@@ -1114,7 +1115,7 @@ export class Game {
   private wander(dt: number) {
     for (const c of this.critters) {
       if (c.dead || c.isPlayer || c.moving || c.aware) continue;
-      if (c.def.faction !== 'monster' && c.def.faction !== 'raiders') continue;
+      if (c.def.faction !== 'monster' && c.def.faction !== 'raiders' && !c.def.wander) continue;
       const t = (this.wanderTimers.get(c.id) ?? Math.random() * 4) - dt;
       this.wanderTimers.set(c.id, t);
       if (t > 0) continue;
@@ -1150,6 +1151,20 @@ export class Game {
       give: (item, qty) => {
         addItem(p.inventory, item, qty);
         this.ui.log(`Вы получаете: ${def(item).name}${qty > 1 ? ` ×${qty}` : ''}.`);
+      },
+      count: (item) => countItem(p.inventory, item),
+      take: (item, qty) => {
+        const n = removeItem(p.inventory, item, qty);
+        if (n) this.ui.log(`Вы отдаёте: ${def(item).name}${n > 1 ? ` ×${n}` : ''}.`);
+        this.ui.refresh();
+        return n;
+      },
+      hurt: () => p.maxHp - p.hp,
+      heal: (n) => {
+        const was = p.hp;
+        p.hp = Math.min(p.maxHp, p.hp + (n ?? p.maxHp));
+        if (p.hp > was) this.ui.log(`Вы восстанавливаете ${p.hp - was} ОЖ.`, '#a0e070');
+        this.ui.refresh();
       },
       xp: (n) => this.gainXp(n),
       g: (m, f) => (p.sheet.sex === 'f' ? f : m),

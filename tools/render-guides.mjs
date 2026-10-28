@@ -5,6 +5,7 @@
 //   kibbutz-blockout.png  — вся локация из примитивов, цветная
 //   kibbutz-clay.png      — то же в сером «пластилине»
 //   kibbutz-calibration.json — калибровка для подстановки перерисованного фона
+//   beersheba-*            — то же для Беэр-Шевы
 
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
@@ -52,6 +53,9 @@ await shot('grid', 'grid.png');
 const cal = await shot('blockout', 'kibbutz-blockout.png', '&ppu=45');
 await shot('clay', 'kibbutz-clay.png', '&ppu=45');
 await writeFile(join(out, 'kibbutz-calibration.json'), JSON.stringify(cal, null, 2) + '\n');
+const calB = await shot('blockout', 'beersheba-blockout.png', '&ppu=45&level=beersheba');
+await shot('clay', 'beersheba-clay.png', '&ppu=45&level=beersheba');
+await writeFile(join(out, 'beersheba-calibration.json'), JSON.stringify(calB, null, 2) + '\n');
 
 await browser.close();
 server.close();

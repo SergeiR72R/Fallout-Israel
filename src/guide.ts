@@ -2,6 +2,7 @@
 //   ?guide=grid      — эталон ракурса: сетка тайлов, гексы, человек и куб для масштаба;
 //   ?guide=blockout  — вся локация из примитивов (цветная), для перерисовки во Flow;
 //   ?guide=clay      — то же в сером «пластилине».
+//   &level=beersheba — другая локация (по умолчанию кибуц).
 // Для blockout/clay рядом публикуется калибровка (window.__guide): размеры,
 // пикселей на метр и пиксель гекса (0,0) — с ней перерисованная картинка
 // встаёт в игру точно по сетке.
@@ -10,6 +11,7 @@ import * as THREE from 'three';
 import { CAM_PITCH, CAM_YAW, HEX_R, PPU_1080 } from './config';
 import { Level } from './world/level';
 import { KIBBUTZ } from './data/kibbutz';
+import { BEERSHEBA } from './data/beersheba';
 import { HumanRig } from './world/models';
 import { hexToWorld, uvToWorld, offsetToHex } from './core/hex';
 
@@ -121,7 +123,8 @@ function gridGuide(app: HTMLElement) {
 function levelGuide(app: HTMLElement, clay: boolean) {
   const params = new URLSearchParams(location.search);
   const ppu = Number(params.get('ppu') ?? 45);
-  const level = new Level({ ...KIBBUTZ, background: undefined });
+  const def = params.get('level') === 'beersheba' ? BEERSHEBA : KIBBUTZ;
+  const level = new Level({ ...def, background: undefined });
   // Без зелёных зон выхода.
   level.root.traverse((o) => {
     const m = (o as THREE.Mesh).material as THREE.Material | undefined;

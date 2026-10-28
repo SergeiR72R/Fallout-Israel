@@ -3,6 +3,7 @@
 
 import type { LevelDef, PropDef, SpawnDef } from '../world/level';
 import { KIBBUTZ } from './kibbutz';
+import { BEERSHEBA } from './beersheba';
 
 export interface WorldLocation {
   id: string;
@@ -39,9 +40,8 @@ export const WORLD = {
       desc: 'Ваше убежище. Воды осталось на считанные дни.',
     },
     {
-      id: 'beersheba', name: 'Беэр-Шева', x: 80.2, y: 30.5, knownFrom: 'knowsBeersheva',
-      closed: 'Над воротами Беэр-Шевы висит табличка «Закрыто на учёт». Город появится в следующей версии.',
-      desc: 'Торговый город среди морских контейнеров. Здесь можно найти Ицика-Мусорщика.',
+      id: 'beersheba', name: 'Беэр-Шева', x: 80.2, y: 30.5, level: 'beersheba', def: BEERSHEBA, knownFrom: 'knowsBeersheva',
+      desc: 'Торговый город среди морских контейнеров у старого турецкого вокзала. Рынок, чайхана, врач и Ицик-Мусорщик.',
     },
     {
       id: 'coast', name: 'Побережье', x: 38.4, y: 22.1, knownFrom: 'knowsCoast',

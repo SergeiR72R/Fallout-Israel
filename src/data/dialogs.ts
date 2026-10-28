@@ -13,6 +13,12 @@ export interface DialogCtx {
   quest(id: string): QuestState;
   setQuest(id: string, s: QuestState): void;
   give(item: string, qty: number): void;
+  /** Сколько предметов у героя; take забирает и возвращает, сколько забрал. */
+  count(item: string): number;
+  take(item: string, qty: number): number;
+  /** Сколько ОЖ не хватает до полного; heal без числа лечит полностью. */
+  hurt(): number;
+  heal(n?: number): void;
   xp(n: number): void;
   /** Выбрать форму по полу героя: g('сделал', 'сделала'). */
   g(m: string, f: string): string;
@@ -49,13 +55,23 @@ export const QUESTS: Record<string, { title: string; desc: (c: DialogCtx) => str
   },
   membrane: {
     title: 'Мембрана для опреснителя',
-    desc: (c) => (c.flag('knowsBeersheva')
+    desc: (c) => (c.flag('membraneLead')
+      ? 'Найти мембрану для опреснителя миклата № 7. Ицик-Мусорщик говорит, что мембраны хранились на складе опреснительного завода в Ашдоде, на побережье. Там «светится».'
+      : c.flag('knowsBeersheva')
       ? 'Найти мембрану для опреснителя миклата № 7. Батья советует искать Ицика-Мусорщика в Беэр-Шеве.'
       : 'Найти мембрану для опреснителя миклата № 7. Без неё убежище умрёт от жажды.'),
+  },
+  stings: {
+    title: 'Жала для Ицика',
+    desc: (c) => (c.quest('stings') === 'done'
+      ? 'Ицик получил жала и рассказал, где искать мембрану.'
+      : `Ицик-Мусорщик в Беэр-Шеве просит три жала гигантских скорпионов. Взамен расскажет, где искать мембрану, и заплатит 100 асимонов. Сейчас у вас: ${Math.min(3, c.count('sting'))} из 3.`),
   },
 };
 
 const dumb = (c: DialogCtx) => c.stat('in') <= 3;
+/** Сколько берёт Док Ави за лечение. */
+const healCost = (c: DialogCtx) => Math.max(10, c.hurt() * 2);
 const smart = (c: DialogCtx) => c.stat('in') > 3;
 
 export const DIALOGS: Record<string, DialogDef> = {
@@ -252,6 +268,198 @@ export const DIALOGS: Record<string, DialogDef> = {
       dumb: {
         text: '— Солдат, солдат. Иди уже, не мешай службе.',
         options: [{ text: 'Есть!', next: 'end' }],
+      },
+    },
+  },
+  bsGuard: {
+    start: (c) => (c.flag('metBsGuard') ? 'again' : 'first'),
+    nodes: {
+      first: {
+        onEnter: (c) => c.set('metBsGuard'),
+        text: '— Стой. Комбинезон приметный — из миклата, значит. Это Беэр-Шева. Правила простые: оружие в городе не доставать, драку начнёшь — весь город против тебя. Торгуй, пей чай, плати врачу. Всё.',
+        options: [
+          { text: 'Кто здесь торгует довоенной техникой?', show: smart, next: 'itzik' },
+          { text: 'Где можно отдохнуть?', show: smart, next: 'tea' },
+          { text: 'У тебя большая пушка!', show: dumb, next: 'dumb' },
+          { text: 'Понял.', next: 'end' },
+        ],
+      },
+      again: {
+        text: '— Правила помнишь? Вот и хорошо.',
+        options: [
+          { text: 'Где найти довоенную технику?', show: smart, next: 'itzik' },
+          { text: 'Где отдохнуть и подлечиться?', show: smart, next: 'tea' },
+          { text: 'Помню.', next: 'end' },
+        ],
+      },
+      itzik: {
+        text: '— Ицик-Мусорщик. Сидит на рынке перед старым вокзалом. Сто раз подумай, прежде чем ему верить, и пересчитай сдачу.',
+        options: [{ text: 'Спасибо.', next: 'again' }],
+      },
+      tea: {
+        text: '— Чайхана Наамы у южной стены. Слухи там бесплатно, вода — нет. Ранен — иди к Доку Ави, белый контейнер справа.',
+        options: [{ text: 'Спасибо.', next: 'again' }],
+      },
+      dumb: {
+        text: '— Большая. И стреляет. Иди уже.',
+        options: [{ text: 'Иду!', next: 'end' }],
+      },
+    },
+  },
+  itzik: {
+    start: (c) => {
+      if (c.quest('stings') === 'active') return c.count('sting') >= 3 ? 'stingsReady' : 'stingsWait';
+      if (c.quest('stings') === 'done') return 'after';
+      return c.flag('metItzik') ? 'again' : 'first';
+    },
+    nodes: {
+      first: {
+        onEnter: (c) => c.set('metItzik'),
+        text: (c) => `Худой человек сдвигает лупу на лоб и разглядывает вас, как товар.\n\n— Ицик. Покупаю всё, что старше ста лет, продаю всё, что ещё стреляет. Чего ${c.g('хочет миклатник', 'хочет миклатница')}?`,
+        options: [
+          { text: 'Мне нужна мембрана для опреснителя.', show: (c) => smart(c) && !c.flag('membraneLead'), next: 'membrane' },
+          { text: 'Покажи товар.', next: 'barter' },
+          { text: 'Ты мусорщик? Фу!', show: dumb, next: 'dumb' },
+          { text: 'Ничего.', next: 'end' },
+        ],
+      },
+      again: {
+        text: '— Опять ты. Есть что продать?',
+        options: [
+          { text: 'Про мембрану…', show: (c) => smart(c) && !c.flag('membraneLead'), next: 'membrane' },
+          { text: 'Расскажи ещё раз, где искать мембрану.', show: (c) => c.flag('membraneLead'), next: 'lead' },
+          { text: 'Покажи товар.', next: 'barter' },
+          { text: 'Пока.', next: 'end' },
+        ],
+      },
+      membrane: {
+        text: '— Мембрана… — Ицик долго протирает лупу. — Может, я знаю, где их искать. А может, и нет. Знание стоит денег. Двести асимонов. Или услуга.',
+        options: [
+          { text: 'Вот двести асимонов.', show: (c) => c.count('asimon') >= 200, act: (c) => { c.take('asimon', 200); }, next: 'lead' },
+          { text: 'Ты сам ничего не знаешь. Иначе давно бы продал её, а не торговался.', next: (c) => (c.skill('speech') >= 55 ? 'speechWin' : 'speechFail') },
+          { text: 'Какая услуга?', show: (c) => c.quest('stings') === 'none', next: 'job' },
+          { text: 'Подумаю.', next: 'end' },
+        ],
+      },
+      speechWin: {
+        onEnter: (c) => { if (!c.flag('itzikSpeech')) { c.set('itzikSpeech'); c.xp(100); } },
+        text: '— Ха! — Ицик хлопает ладонью по прилавку. — Будь у меня мембрана, я бы уже пил чай в Иерусалиме. Ладно, умник, слушай бесплатно.',
+        options: [{ text: 'Слушаю.', next: 'lead' }],
+      },
+      speechFail: {
+        text: '— Хорошая попытка, миклатник. Деньги или услуга.',
+        options: [{ text: 'Ладно.', next: 'membrane' }],
+      },
+      job: {
+        text: '— Знахари платят мне за жала гигантских скорпионов: из них варят противоядие. Принеси три жала — расскажу, где искать мембрану, и накину сотню асимонов сверху.',
+        options: [
+          { text: 'Договорились.', act: (c) => c.setQuest('stings', 'active'), next: 'end' },
+          { text: 'Не сейчас.', next: 'end' },
+        ],
+      },
+      stingsWait: {
+        text: (c) => `— Жала принёс? Три штуки, не меньше. ${c.count('sting') ? `Вижу у тебя ${c.count('sting')} — мало.` : 'Пока не вижу ни одного.'}`,
+        options: [
+          { text: 'Может, договоримся иначе?', next: 'membrane' },
+          { text: 'Покажи товар.', next: 'barter' },
+          { text: 'Скоро будут.', next: 'end' },
+        ],
+      },
+      stingsReady: {
+        text: '— О! Целых три, и свежие. Давай сюда.',
+        options: [{
+          text: 'Держи.',
+          act: (c) => { c.take('sting', 3); c.give('asimon', 100); c.xp(150); c.setQuest('stings', 'done'); },
+          next: 'lead',
+        }],
+      },
+      lead: {
+        onEnter: (c) => { c.set('membraneLead'); c.set('knowsCoast'); },
+        text: '— Слушай. До войны мембраны делали на опреснительном заводе в Ашдоде, на побережье. Там был склад запчастей: ящики с мембранами, запаянные в вакуум. Сто лет никто туда не совался — светится. Но если кто и найдёт там целую мембрану, то только такой псих, как ты. Принесёшь лишнюю — куплю.',
+        options: [{ text: 'Спасибо, Ицик.', next: 'again' }],
+      },
+      after: {
+        text: '— Жала ушли знахарям за хорошие деньги. Ты мне нравишься, миклатник. Заходи ещё.',
+        options: [
+          { text: 'Напомни, где искать мембрану.', next: 'lead' },
+          { text: 'Покажи товар.', next: 'barter' },
+          { text: 'Пока.', next: 'end' },
+        ],
+      },
+      dumb: {
+        text: '— Мусорщик, мусорщик. А ты — покупатель? Асимоны покажи.',
+        options: [{ text: 'Вот!', next: 'barter' }, { text: 'Не покажу!', next: 'end' }],
+      },
+    },
+  },
+  naama: {
+    start: (c) => (c.flag('metNaama') ? 'again' : 'first'),
+    nodes: {
+      first: {
+        onEnter: (c) => c.set('metNaama'),
+        text: '— Садись, путник, — женщина в цветастом платке наливает чай из закопчённого финджана. — Я Наама. Чай с мятой — асимон, вода — пятнадцать. Слухи бесплатно, если хорошо слушаешь.',
+        options: [
+          { text: 'Чаю, пожалуйста. (1 асимон)', show: (c) => c.count('asimon') >= 1, act: (c) => { c.take('asimon', 1); c.heal(3); }, next: 'tea' },
+          { text: 'Какие слухи ходят?', show: smart, next: 'rumors' },
+          { text: 'Что у тебя есть?', next: 'barter' },
+          { text: 'Мне пора.', next: 'end' },
+        ],
+      },
+      again: {
+        text: '— Снова ты. Чаю?',
+        options: [
+          { text: 'Да, чаю. (1 асимон)', show: (c) => c.count('asimon') >= 1, act: (c) => { c.take('asimon', 1); c.heal(3); }, next: 'tea' },
+          { text: 'Что нового?', show: smart, next: 'rumors' },
+          { text: 'Что у тебя есть?', next: 'barter' },
+          { text: 'В другой раз.', next: 'end' },
+        ],
+      },
+      tea: {
+        text: 'Сладкий горячий чай с мятой. Песок на зубах хрустит уже не так противно.',
+        options: [{ text: 'Спасибо.', next: 'again' }],
+      },
+      rumors: {
+        onEnter: (c) => c.set('heardSons'),
+        text: '— На юге, у Мёртвого моря, режут соль кристаллами, и бродят там то ли люди, то ли нет. С запада приходят Сыны Бетона — молятся на старые бункеры, говорят, у них есть рабочая довоенная техника. С таким комбинезоном, как у тебя, им лучше не попадаться: решат, что ты святыня, и не отпустят.',
+        options: [
+          { text: 'А про Ашдод что говорят?', show: (c) => c.flag('membraneLead'), next: 'ashdod' },
+          { text: 'Спасибо.', next: 'again' },
+        ],
+      },
+      ashdod: {
+        text: '— Ашдод? — Наама перестаёт наливать. — Оттуда возвращаются с язвами. Если пойдёшь — возьми побольше воды и не ночуй под открытым небом. Там по ночам светится сам воздух.',
+        options: [{ text: 'Учту.', next: 'again' }],
+      },
+    },
+  },
+  doctor: {
+    start: (c) => (c.flag('metDoctor') ? 'again' : 'first'),
+    nodes: {
+      first: {
+        onEnter: (c) => c.set('metDoctor'),
+        text: '— Док Ави. Лечу всё, кроме глупости: огнестрел, укусы, ожоги. Плата вперёд.',
+        options: [
+          { text: (c) => `Подлечи меня. (${healCost(c)} асимонов)`, show: (c) => c.hurt() > 0, next: (c) => (c.count('asimon') >= healCost(c) ? 'heal' : 'poor') },
+          { text: 'Продашь шприц-тюбики?', next: 'barter' },
+          { text: 'Пока ничего не нужно.', next: 'end' },
+        ],
+      },
+      again: {
+        text: '— Опять продырявили? Показывай.',
+        options: [
+          { text: (c) => `Подлечи меня. (${healCost(c)} асимонов)`, show: (c) => c.hurt() > 0, next: (c) => (c.count('asimon') >= healCost(c) ? 'heal' : 'poor') },
+          { text: 'Продашь шприц-тюбики?', next: 'barter' },
+          { text: 'Я в порядке.', next: 'end' },
+        ],
+      },
+      heal: {
+        onEnter: (c) => { c.take('asimon', healCost(c)); c.heal(); },
+        text: '— Готово. Шов не мочить, под пули не лезть. Хотя бы до завтра.',
+        options: [{ text: 'Спасибо, док.', next: 'end' }],
+      },
+      poor: {
+        text: '— Асимонов не хватает. Приходи, когда будут. Или купи у меня шприц-тюбик и уколи себя сам — дешевле не станет, но хоть быстро.',
+        options: [{ text: 'Понятно.', next: 'end' }],
       },
     },
   },

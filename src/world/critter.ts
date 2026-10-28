@@ -6,7 +6,7 @@ import { Sheet, SkillId, derived, effStats, newSheet, skillValue } from '../rule
 import { ITEMS, Stack, WeaponDef, def } from '../rules/items';
 import { perkRank } from '../rules/perks';
 
-export type Faction = 'player' | 'kibbutz' | 'monster' | 'raiders' | 'traders';
+export type Faction = 'player' | 'kibbutz' | 'monster' | 'raiders' | 'traders' | 'town';
 export type FireMode = 'single' | 'aimed' | 'burst' | 'reload';
 
 export interface MonsterStats {
@@ -36,6 +36,8 @@ export interface CritterDef {
   /** Опыт за победу (по умолчанию — из monster.xp или 50). */
   xp?: number;
   barks?: string[];
+  /** Бродит возле места появления (мирные жители). */
+  wander?: boolean;
   /** «Говорящая голова» для диалога (public/portraits/...): кадр и два ролика — молчит и говорит. */
   portrait?: { image?: string; idle?: string; talk?: string };
 }

@@ -93,6 +93,8 @@ Keep the black area outside the map black. Do not add any people, animals or tex
 
 > Если Flow «уплывает» от композиции, ослабьте творческую свободу (если есть такая настройка) или перерисовывайте частями: я могу нарезать заготовку на 4 фрагмента.
 
+**B2. Беэр-Шева (перерисовка заготовки)** — заготовка `docs/guides/beersheba-blockout.png`, калибровка `beersheba-calibration.json`. Промпт — в [CLAUDE_CHROME_BEERSHEBA.md](CLAUDE_CHROME_BEERSHEBA.md), раздел C.
+
 ---
 
 ## 3. Персонажи для 3D-моделей
