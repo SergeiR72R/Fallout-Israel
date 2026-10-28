@@ -117,6 +117,26 @@ Sprite sheet for a 1998 isometric CRPG: one row of eight full-body frames of the
 The character quickly draws a 9mm pistol from the holster on his right hip, raises it with both hands toward the lower right, fires one shot with a small muzzle flash and recoil, then lowers the pistol. He stays on the same spot. The camera is completely locked, no zoom, no pan. [VIEW] [BG] [HERO]
 ```
 
+### F. Иконки предметов — приоритет 6 (не спрайты, но нужны игре)
+
+Квадрат 1:1, мин. 512 px. Клади в папку `Ассеты Фоллаут/icons` (не в `sprites-test`). Здесь блоки `[HERO]`, `[VIEW]`, `[BG]` **не нужны**. Шаблон промпта (вместо `{ITEM}` подставь описание из таблицы):
+```
+Inventory icon for a 1998 CRPG like Fallout 2: {ITEM}, three-quarter view, centred, isolated on a pure black background, pre-rendered 3D look with painted realistic textures, worn and dusty, warm light from the upper left. Square image. No text, no shadow on the background.
+```
+Хороший вариант: один предмет по центру на **чисто чёрном** фоне, без текста.
+
+| Файл | {ITEM} |
+|---|---|
+| `sting.png` | the severed glossy black stinger of a giant scorpion, curved, with a sharp tip and a drop of venom |
+| `machete.png` | a long rusty machete with a wide blade and a wrapped leather handle |
+| `uzi.png` | a worn Uzi submachine gun with a scratched black finish, folded metal stock and a long magazine |
+| `sawnoff.png` | a sawn-off double-barrel shotgun with short cut barrels and a worn wooden stock |
+| `galil.png` | a worn Israeli Galil assault rifle with a folding stock, carry handle and bipod |
+| `shell.png` | a handful of red 12-gauge shotgun shells with brass bases |
+| `ammo556.png` | a small stripper clip of 5.56 mm rifle cartridges with brass casings |
+| `tireArmor.png` | crude body armour made of cut car tyre pieces wired together into a vest |
+| `metalArmor.png` | crude body armour made of hammered car body sheet metal plates riveted together |
+
 ---
 
 ## 5. Отчёт
