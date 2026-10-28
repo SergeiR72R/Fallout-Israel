@@ -15,7 +15,11 @@ const P: Record<string, string> = {
   asimon: '<circle cx="32" cy="32" r="18"/><rect x="29" y="18" width="6" height="28" fill="#0007"/>',
 };
 
+/** Иконки, нарисованные во Flow (public/icons/<id>.webp). Для остальных — SVG-силуэт. */
+const RASTER = new Set(['pistol9', 'knife', 'ammo9', 'stim', 'loof', 'water', 'jacket', 'vest', 'asimon']);
+
 export function itemIcon(id: string): string {
+  if (RASTER.has(id)) return `<img class="ico raster" src="icons/${id}.webp" alt="" draggable="false">`;
   const body = P[id] ?? '<rect x="16" y="16" width="32" height="32" rx="4"/>';
   return `<svg viewBox="0 0 64 64" class="ico" fill="currentColor">${body}</svg>`;
 }

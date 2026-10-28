@@ -16,7 +16,7 @@ js = open(glob.glob('dist/assets/*.js')[0]).read()
 
 MIME = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.png': 'image/png', '.mp4': 'video/mp4'}
 total = 0
-for path in sorted(set(re.findall(r'(?:art|backgrounds|sprites|portraits|video)/[\w.-]+\.(?:webp|jpg|png|mp4)', js))):
+for path in sorted(set(re.findall(r'(?:art|backgrounds|sprites|portraits|video|icons)/[\w.-]+\.(?:webp|jpg|png|mp4)', js))):
     f = os.path.join('dist', path)
     if not os.path.exists(f):
         print('нет файла', f)

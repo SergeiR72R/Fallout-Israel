@@ -1,7 +1,7 @@
 // Карта мира в духе Fallout: местность, туман войны по клеткам 10×10 км,
 // путешествие с течением времени и случайные встречи.
-// Подложка рисуется процедурно; позже её заменит нарисованная во Flow карта
-// (public/art/worldmap.webp), если такой файл появится.
+// Подложка — нарисованная во Flow карта (public/art/worldmap.webp); пока она грузится
+// или если её нет, рисуется процедурная.
 
 import type { Game } from '../game/game';
 import { WORLD, ENCOUNTERS, EncounterType, WorldLocation, rollEncounter } from '../data/world';
@@ -9,12 +9,21 @@ import { el, esc } from '../core/util';
 import { sfx } from './sfx';
 
 const PX = 7.5; // пикселей на километр
-const W = WORLD.width * PX, H = WORLD.height * PX;
-const CELL = 10; // км
+const W = WORLD.width * PX, H = Math.round(WORLD.height * PX);
+/** Внутреннее разрешение холста: вдвое больше, чтобы карта была чёткой на 4K. */
+const DPR = 2;
+// Клетки тумана совпадают с сеткой нарисованной карты: 30 × 16.
+const CELL_X = WORLD.width / 30, CELL_Y = WORLD.height / 16;
+
+const painted = new Image();
+let paintedReady = false;
+painted.onload = () => { paintedReady = true; };
+painted.src = 'art/worldmap.webp';
 
 let terrain: HTMLCanvasElement | null = null;
 
-function terrainCanvas(): HTMLCanvasElement {
+function terrainCanvas(): CanvasImageSource {
+  if (paintedReady) return painted;
   if (terrain) return terrain;
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
@@ -102,19 +111,18 @@ function terrainCanvas(): HTMLCanvasElement {
   // Сетка 10 км, как клетки на карте Fallout.
   g.strokeStyle = 'rgba(40,30,15,0.18)';
   g.lineWidth = 1;
-  for (let x = 0; x <= WORLD.width; x += CELL) { g.beginPath(); g.moveTo(k(x), 0); g.lineTo(k(x), H); g.stroke(); }
-  for (let y = 0; y <= WORLD.height; y += CELL) { g.beginPath(); g.moveTo(0, k(y)); g.lineTo(W, k(y)); g.stroke(); }
+  for (let x = 0; x <= WORLD.width; x += CELL_X) { g.beginPath(); g.moveTo(k(x), 0); g.lineTo(k(x), H); g.stroke(); }
+  for (let y = 0; y <= WORLD.height; y += CELL_Y) { g.beginPath(); g.moveTo(0, k(y)); g.lineTo(W, k(y)); g.stroke(); }
   terrain = c;
   return c;
 }
 
-const cellKey = (x: number, y: number) => `${Math.floor(x / CELL)},${Math.floor(y / CELL)}`;
 
 export function buildWorldMap(game: Game, close: () => void): HTMLElement {
   const wrap = el('div', 'wm metal');
   const mapBox = el('div', 'wm-map sunk');
   const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
+  canvas.width = W * DPR; canvas.height = H * DPR;
   mapBox.appendChild(canvas);
   const side = el('div', 'wm-side');
   const clock = el('div', 'wm-clock crt');
@@ -124,6 +132,8 @@ export function buildWorldMap(game: Game, close: () => void): HTMLElement {
   side.append(clock, list, info, actions);
   wrap.append(mapBox, side);
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(DPR, DPR);
+  if (!paintedReady) painted.addEventListener('load', () => draw(), { once: true });
 
   let target: { x: number; y: number } | null = null;
   let traveling = false;
@@ -135,16 +145,20 @@ export function buildWorldMap(game: Game, close: () => void): HTMLElement {
   const known = (l: WorldLocation) => l.knownFrom === 'start' || (!!l.knownFrom && game.flags.has(l.knownFrom));
   const here = () => WORLD.locations.find((l) => known(l) && Math.hypot(l.x - game.world.x, l.y - game.world.y) < 2.5);
   const reveal = () => {
-    const cx = Math.floor(game.world.x / CELL), cy = Math.floor(game.world.y / CELL);
-    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) game.worldSeen.add(`${cx + dx},${cy + dy}`);
+    const cx = Math.floor(game.world.x / CELL_X), cy = Math.floor(game.world.y / CELL_Y);
+    for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) {
+      if (Math.abs(dx) + Math.abs(dy) < 4) game.worldSeen.add(`${cx + dx},${cy + dy}`);
+    }
   };
 
   const draw = () => {
-    ctx.drawImage(terrainCanvas(), 0, 0);
+    ctx.drawImage(terrainCanvas(), 0, 0, W, H);
     // Туман войны.
     ctx.fillStyle = 'rgba(8,6,4,0.93)';
-    for (let x = 0; x < WORLD.width; x += CELL) for (let y = 0; y < WORLD.height; y += CELL) {
-      if (!game.worldSeen.has(cellKey(x, y))) ctx.fillRect(x * PX, y * PX, CELL * PX, CELL * PX);
+    for (let i = 0; i < 30; i++) for (let j = 0; j < 16; j++) {
+      if (game.worldSeen.has(`${i},${j}`)) continue;
+      const x0 = Math.round(i * CELL_X * PX), y0 = Math.round(j * CELL_Y * PX);
+      ctx.fillRect(x0, y0, Math.round((i + 1) * CELL_X * PX) - x0, Math.round((j + 1) * CELL_Y * PX) - y0);
     }
     // След.
     ctx.fillStyle = 'rgba(200,40,20,0.8)';

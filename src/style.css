@@ -312,11 +312,14 @@ button { font-family: inherit; }
 .menu-about { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); zoom: var(--s); width: 760px; padding: 28px 32px; font-size: 18px; line-height: 1.6; cursor: pointer; }
 
 .intro-screen { background: #000; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.intro-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.intro-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .7s ease; }
+.intro-video.on { opacity: 1; }
+.intro-sub { position: absolute; left: 0; right: 0; bottom: 3.5%; zoom: var(--s); text-align: center; padding: 0 120px; font: 500 30px 'Oswald'; color: #e6d3a6; letter-spacing: .03em; line-height: 1.4; text-shadow: 0 2px 6px #000; opacity: 0; }
+.intro-sub.show { animation: introFade 1.6s ease forwards; }
 .intro-text { zoom: var(--s); max-width: 1100px; padding: 0 40px; text-align: center; font: 500 36px 'Oswald'; color: #d9c497; line-height: 1.5; opacity: 0; letter-spacing: .03em; }
 .intro-text.show { animation: introFade 2.6s ease forwards; }
 @keyframes introFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.intro-skip { position: absolute; bottom: 20px; right: 24px; color: #5a4a36; font-size: 15px; }
+.intro-skip { position: absolute; top: 20px; right: 24px; z-index: 2; color: #5a4a36; font-size: 15px; }
 
 .cc-screen { display: flex; background: radial-gradient(ellipse at center, #2a2018, #000 80%); }
 .cc { width: 1500px; }
@@ -345,7 +348,7 @@ button { font-family: inherit; }
 .worldmap-back { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; z-index: 20; }
 .wm { zoom: var(--s); display: grid; grid-template-columns: 1200px 300px; gap: 18px; padding: 18px; }
 .wm-map { padding: 4px; line-height: 0; }
-.wm-map canvas { width: 1200px; height: 750px; cursor: crosshair; display: block; }
+.wm-map canvas { width: 1200px; height: 670px; cursor: crosshair; display: block; }
 .wm-side { display: flex; flex-direction: column; gap: 12px; }
 .wm-clock { padding: 12px 14px; font-size: 16px; line-height: 1.6; }
 .wm-clock .warn { color: #ffd060; }
@@ -369,3 +372,5 @@ button { font-family: inherit; }
 .inv-item em { font-style: normal; color: #9dffa8; font-family: 'IBM Plex Mono', monospace; font-size: 14px; min-width: 34px; text-align: right; }
 .barter-say { padding: 10px 14px; font-size: 17px; margin-bottom: 12px; }
 .barter-totals { margin-top: 12px; padding: 10px 14px; font-size: 18px; text-align: center; }
+
+.ico.raster { object-fit: contain; filter: drop-shadow(2px 3px 2px rgba(0,0,0,.8)); }

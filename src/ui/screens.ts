@@ -46,27 +46,69 @@ const INTRO = [
   'Найди мембрану. Двери за тобой закроются.',
 ];
 
-/** Вступление. Если положить public/video/intro.mp4 (ролик из Flow), покажется он. */
+/** Вступление: шесть роликов из Flow (public/video/intro-1…6.mp4) с субтитрами; без роликов — текстовые слайды. */
+const INTRO_CLIPS = 6;
+
 export function intro(root: HTMLElement): Promise<void> {
   return new Promise((resolve) => {
     const s = el('div', 'screen intro-screen');
     root.appendChild(s);
     let finished = false;
-    const finish = () => { if (finished) return; finished = true; s.remove(); resolve(); };
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener('keydown', onKey);
+      for (const v of vids) v.pause();
+      s.remove();
+      resolve();
+    };
     const skip = el('div', 'intro-skip', 'Щёлкните или нажмите Esc, чтобы пропустить');
     s.appendChild(skip);
     s.addEventListener('click', finish);
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') { window.removeEventListener('keydown', onKey); finish(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') finish(); };
     window.addEventListener('keydown', onKey);
 
-    const video = document.createElement('video');
-    video.src = 'video/intro.mp4';
-    video.className = 'intro-video';
-    video.playsInline = true;
-    video.onended = finish;
-    video.oncanplay = () => { s.prepend(video); void video.play().catch(() => {}); };
-    video.onerror = () => slides();
-    video.load();
+    // Два видео по очереди: пока играет одно, второе грузит следующий ролик; смена — через затухание.
+    const vids = [0, 1].map(() => {
+      const v = document.createElement('video');
+      v.className = 'intro-video';
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.volume = 0.8;
+      s.prepend(v);
+      return v;
+    });
+    const sub = el('div', 'intro-sub');
+    s.appendChild(sub);
+
+    const play = (n: number) => {
+      if (finished) return;
+      if (n >= INTRO_CLIPS) { finish(); return; }
+      const v = vids[n % 2], next = vids[(n + 1) % 2];
+      if (v.dataset.bad) { play(n + 1); return; }
+      v.onended = () => play(n + 1);
+      v.classList.add('on');
+      next.classList.remove('on');
+      // Без жеста пользователя браузер может запретить звук — тогда без звука.
+      void v.play().catch(() => { v.muted = true; void v.play().catch(() => play(n + 1)); });
+      sub.textContent = INTRO[n] ?? '';
+      sub.classList.remove('show');
+      void sub.offsetWidth;
+      sub.classList.add('show');
+      // Следующий ролик грузится, когда предыдущий уже погас.
+      if (n + 1 < INTRO_CLIPS) setTimeout(() => {
+        delete next.dataset.bad;
+        next.onerror = () => { next.dataset.bad = '1'; };
+        next.src = `video/intro-${n + 2}.mp4`;
+        next.load();
+      }, 900);
+    };
+
+    const first = vids[0];
+    first.onerror = () => { for (const v of vids) v.remove(); sub.remove(); void slides(); };
+    first.oncanplay = () => { first.oncanplay = null; first.onerror = null; play(0); };
+    first.src = 'video/intro-1.mp4';
+    first.load();
 
     const slides = async () => {
       const t = el('div', 'intro-text');

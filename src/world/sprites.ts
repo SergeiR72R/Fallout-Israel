@@ -96,6 +96,20 @@ export class SpriteRig extends Rig {
     this.lastKey = '';
   }
 
+  /** Силуэт сквозь препятствия: виден там, где спрайт закрыт стеной или навесом. */
+  private ghost: THREE.MeshBasicMaterial | null = null;
+  enableSilhouette(color = 0x9fe0a0) {
+    if (this.ghost) return;
+    this.ghost = new THREE.MeshBasicMaterial({
+      color, transparent: true, opacity: 0.45, depthWrite: false, depthFunc: THREE.GreaterDepth,
+      alphaTest: 0.3, toneMapped: false, map: this.tex,
+    });
+    const g = new THREE.Mesh(this.mesh.geometry, this.ghost);
+    g.renderOrder = 6;
+    g.raycast = () => {};
+    this.mesh.add(g);
+  }
+
   setHighlight(on: boolean) {
     this.mat.color.setScalar(on ? 1.3 : 1);
   }
@@ -159,6 +173,7 @@ export class SpriteRig extends Rig {
       this.texPage = page;
       this.mat.map = this.tex;
       this.mat.needsUpdate = true;
+      if (this.ghost) { this.ghost.map = this.tex; this.ghost.needsUpdate = true; }
     }
     const tex = this.tex!;
     tex.repeat.set(w / pw, h / ph);

@@ -77,6 +77,7 @@ export class Critter {
       this.rig = sheet ? new SpriteRig(sheet)
         : def.kind === 'bigScorpion' ? new ScorpionRig(1.45, 0x7a4a26) : new ScorpionRig(1, 0x9a7040);
     }
+    if (def.faction === 'player' && this.rig instanceof SpriteRig) this.rig.enableSilhouette();
     for (const s of def.inventory ?? []) this.inventory.push({ ...s });
     if (def.hand) this.hands[0] = { id: def.hand, qty: 1, loaded: ITEMS[def.hand].weapon?.mag };
     if (def.armor) this.armor = { id: def.armor, qty: 1 };

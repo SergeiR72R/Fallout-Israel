@@ -5,4 +5,4 @@ OUT=$1
 npm run build >/dev/null
 rm -rf "$OUT" && mkdir -p "$OUT"
 python3 tools/build-artifact.py "$OUT/hamsin.html"
-cp -r dist/art dist/backgrounds dist/sprites dist/portraits "$OUT/"
+cp -r dist/art dist/backgrounds dist/sprites dist/portraits dist/icons dist/video "$OUT/"

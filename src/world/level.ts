@@ -45,6 +45,11 @@ export type PropDef = PropBase & (
   | { type: 'hatch' }
   | { type: 'sandbags'; w: number }
   | { type: 'rock'; r: number }
+  /**
+   * Невидимое препятствие для нарисованных фонов: отрезок (u,v)→to толщиной t
+   * или четырёхугольник pts. y0 > 0 — висящая заслонка (навес), не мешает ходить.
+   */
+  | { type: 'block'; to?: [number, number]; t?: number; pts?: [number, number][]; h: number; y0?: number; low?: boolean; noBlock?: boolean }
   /** Мешки с песком между двумя точками (u,v) — для стенок, нарисованных под любым углом. */
   | { type: 'wall'; to: [number, number] }
 );
@@ -194,6 +199,30 @@ export class Level {
   }
 
   private buildProp(p: PropDef, painted: boolean) {
+    if (p.type === 'block') {
+      let x: number, z: number, w: number, d: number, rot: number;
+      if (p.pts) {
+        const w4 = p.pts.map(([u, v]) => uvToWorld(u, v));
+        x = w4.reduce((a, q) => a + q[0], 0) / 4;
+        z = w4.reduce((a, q) => a + q[1], 0) / 4;
+        rot = Math.atan2(-(w4[1][1] - w4[0][1]), w4[1][0] - w4[0][0]);
+        w = Math.hypot(w4[1][0] - w4[0][0], w4[1][1] - w4[0][1]);
+        d = Math.hypot(w4[3][0] - w4[0][0], w4[3][1] - w4[0][1]);
+      } else {
+        const [x1, z1] = uvToWorld(p.u, p.v);
+        const [x2, z2] = uvToWorld(...(p.to ?? [p.u, p.v]));
+        const t = p.t ?? 0.8;
+        x = (x1 + x2) / 2; z = (z1 + z2) / 2;
+        rot = Math.atan2(-(z2 - z1), x2 - x1);
+        w = Math.hypot(x2 - x1, z2 - z1) + t;
+        d = t;
+      }
+      const y0 = p.y0 ?? 0;
+      const o = this.addBlocker({ x, z, w, d, h: p.h, rot, low: !!p.low || p.h < 1.2 }, painted, 0x8a7a66);
+      o.position.y = y0 + p.h / 2;
+      if (p.noBlock || y0 > 0) this.blockers.pop();
+      return;
+    }
     if (p.type === 'wall') {
       const [x1, z1] = uvToWorld(p.u, p.v);
       const [x2, z2] = uvToWorld(p.to[0], p.to[1]);
