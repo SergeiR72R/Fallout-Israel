@@ -54,6 +54,9 @@ export class Critter {
   hands: [Stack | null, Stack | null] = [null, null];
   activeHand: 0 | 1 = 0;
   fireMode: [FireMode, FireMode] = ['single', 'single'];
+  /** Номер текущего маршрута и шаг, который сейчас проигрывается (см. Game.stepAlong). */
+  walkSeq = 0;
+  stepping: Promise<void> | null = null;
   armor: Stack | null = null;
   dead = false;
   aware = false;

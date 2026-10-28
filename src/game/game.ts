@@ -469,10 +469,16 @@ export class Game {
 
   private async stepAlong(c: Critter, path: Hex[], run: boolean, token?: number, inCombat = false): Promise<boolean> {
     const speed = run ? RUN_SPEED : WALK_SPEED;
+    // Новый маршрут во время ходьбы: дождаться, пока закончится текущий шаг,
+    // и не дать старому маршруту остановить анимацию нового.
+    const seq = ++c.walkSeq;
+    if (c.stepping) await c.stepping;
+    if (seq !== c.walkSeq) return false;
     c.rig.setMoving(speed);
     c.moving = true;
     try {
       for (const h of path) {
+        if (seq !== c.walkSeq) return false;
         if (token !== undefined && token !== this.moveToken) return false;
         if (c.dead) return false;
         if (!this.walkable(h, c)) return false;
@@ -482,7 +488,9 @@ export class Game {
         c.rig.faceTo(tx - from.x, tz - from.z);
         c.hex = { ...h };
         const dur = Math.hypot(tx - from.x, tz - from.z) / speed;
-        await tween(dur, (k) => c.rig.root.position.set(from.x + (tx - from.x) * k, 0, from.z + (tz - from.z) * k));
+        c.stepping = tween(dur, (k) => c.rig.root.position.set(from.x + (tx - from.x) * k, 0, from.z + (tz - from.z) * k));
+        await c.stepping;
+        c.stepping = null;
         if (c.isPlayer) {
           this.followCamera();
           if (inCombat) this.ui.refresh();
@@ -494,8 +502,10 @@ export class Game {
       }
       return true;
     } finally {
-      c.rig.setMoving(0);
-      c.moving = false;
+      if (seq === c.walkSeq) {
+        c.rig.setMoving(0);
+        c.moving = false;
+      }
     }
   }
 
