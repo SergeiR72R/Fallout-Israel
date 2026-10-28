@@ -14,6 +14,9 @@ export interface WeaponDef {
   addMelee?: boolean;
   /** Набор кадров спрайта, которым персонаж держит оружие. */
   pose?: 'pistol' | 'knife';
+  /** Стрельба очередью: сколько патронов и сколько ОД. */
+  burst?: number;
+  burstAp?: number;
   verb: string;
 }
 
@@ -57,7 +60,7 @@ export const ITEMS: Record<string, ItemDef> = {
   uzi: {
     id: 'uzi', name: 'Пистолет-пулемёт «Узи»', kind: 'weapon', weight: 4, value: 650, glyph: '🔫',
     desc: 'Довоенный «Узи» с потёртым воронением. Лёгкий, скорострельный, ест патроны 9 мм.',
-    weapon: { skill: 'smallGuns', dmg: [5, 12], ap: 4, range: 15, ammo: 'ammo9', mag: 25, pose: 'pistol', verb: 'стреляете в' },
+    weapon: { skill: 'smallGuns', dmg: [5, 12], ap: 4, range: 15, ammo: 'ammo9', mag: 25, burst: 5, burstAp: 6, pose: 'pistol', verb: 'стреляете в' },
   },
   sawnoff: {
     id: 'sawnoff', name: 'Обрез', kind: 'weapon', weight: 5, value: 350, glyph: '🔫',
@@ -67,7 +70,7 @@ export const ITEMS: Record<string, ItemDef> = {
   galil: {
     id: 'galil', name: 'Винтовка «Галиль»', kind: 'weapon', weight: 9, value: 1200, glyph: '🔫',
     desc: 'Автоматическая винтовка с сошками и открывалкой для бутылок в цевье. Бьёт далеко и точно.',
-    weapon: { skill: 'smallGuns', dmg: [10, 22], ap: 5, range: 35, ammo: 'ammo556', mag: 20, pose: 'pistol', verb: 'стреляете в' },
+    weapon: { skill: 'smallGuns', dmg: [10, 22], ap: 5, range: 35, ammo: 'ammo556', mag: 20, burst: 3, burstAp: 6, pose: 'pistol', verb: 'стреляете в' },
   },
   shell: {
     id: 'shell', name: 'Патроны 12 калибра', kind: 'ammo', weight: 0, value: 3, glyph: '⁍',

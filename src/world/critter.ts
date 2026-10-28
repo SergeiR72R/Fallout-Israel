@@ -7,7 +7,7 @@ import { ITEMS, Stack, WeaponDef, def } from '../rules/items';
 import { perkRank } from '../rules/perks';
 
 export type Faction = 'player' | 'kibbutz' | 'monster' | 'raiders' | 'traders';
-export type FireMode = 'single' | 'aimed' | 'reload';
+export type FireMode = 'single' | 'aimed' | 'burst' | 'reload';
 
 export interface MonsterStats {
   hp: number; ap: number; ac: number; skill: number; seq: number; crit: number;
@@ -120,9 +120,9 @@ export class Critter {
   }
   get weapon(): WeaponDef { return def(this.weaponStack).weapon!; }
 
-  attackCost(aimed = this.fireMode[this.activeHand] === 'aimed') {
+  attackCost(aimed = this.fireMode[this.activeHand] === 'aimed', burst = this.fireMode[this.activeHand] === 'burst' && !!this.weapon.burst) {
     const w = this.weapon;
-    let c = w.ap;
+    let c = burst ? w.burstAp ?? w.ap + 1 : w.ap;
     if (!w.melee && this.sheet.traits.includes('fastShot')) c -= 1;
     if (aimed) c += 1;
     return Math.max(1, c);

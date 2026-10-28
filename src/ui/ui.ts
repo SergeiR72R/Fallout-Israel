@@ -22,7 +22,7 @@ export type CursorKind = keyof typeof CURSORS;
 
 export const STAT_WORDS = ['', 'Ужасно', 'Плохо', 'Слабо', 'Ниже ср.', 'Средне', 'Хорошо', 'Отлично', 'Великолепно', 'Героически', 'Невероятно'];
 
-const MODE_NAMES = { single: 'ОДИНОЧНЫЙ', aimed: 'ПРИЦЕЛЬНЫЙ', reload: 'ПЕРЕЗАРЯДКА' };
+const MODE_NAMES = { single: 'ОДИНОЧНЫЙ', aimed: 'ПРИЦЕЛЬНЫЙ', burst: 'ОЧЕРЕДЬ', reload: 'ПЕРЕЗАРЯДКА' };
 
 function redButton(label: string, act: () => void, cls = '') {
   const b = el('button', `rbtn ${cls}`, `<i></i><span>${label}</span>`);

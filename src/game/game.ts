@@ -7,7 +7,7 @@ import { clamp, pick, rand, roll100, wait, tween } from '../core/util';
 import { WALK_SPEED, RUN_SPEED } from '../config';
 import { Level, Interactive, LevelDef, hexShape } from '../world/level';
 import { View } from '../world/view';
-import { Critter, CritterDef } from '../world/critter';
+import { Critter, CritterDef, FireMode } from '../world/critter';
 import { getSheet } from '../world/sprites';
 import { KIBBUTZ } from '../data/kibbutz';
 import { CRITTERS } from '../data/critters';
@@ -726,8 +726,9 @@ export class Game {
   cycleFireMode() {
     const p = this.player, h = p.activeHand;
     const w = p.weapon;
-    const modes: ('single' | 'aimed' | 'reload')[] = ['single'];
+    const modes: FireMode[] = ['single'];
     if (p.canAim()) modes.push('aimed');
+    if (w.burst) modes.push('burst');
     if (w.ammo) modes.push('reload');
     const i = modes.indexOf(p.fireMode[h]);
     p.fireMode[h] = modes[(i + 1) % modes.length];
@@ -803,9 +804,11 @@ export class Game {
       aim = chosen;
     }
     if (this.mode === 'explore') await this.startCombat(p);
-    if (p.ap < p.attackCost(aimed)) { this.ui.log('Недостаточно очков действия.'); sfx.denied(); return; }
+    const burst = p.fireMode[p.activeHand] === 'burst' && !!w.burst;
+    if (p.ap < p.attackCost(aimed, burst)) { this.ui.log('Недостаточно очков действия.'); sfx.denied(); return; }
     this.busy = true;
-    await this.attack(p, tgt, aim, aimed);
+    if (burst) await this.burstAttack(p, tgt);
+    else await this.attack(p, tgt, aim, aimed);
     this.busy = false;
     this.ui.refresh();
     this.updateHover();
@@ -815,7 +818,7 @@ export class Game {
   async attack(att: Critter, tgt: Critter, aim: AimPart, aimed = false) {
     const w = att.weapon;
     const stack = att.weaponStack;
-    att.ap -= att.attackCost(aimed);
+    att.ap -= att.attackCost(aimed, false);
     if (w.ammo && stack.loaded !== undefined) stack.loaded--;
     this.faceHex(att, tgt.hex);
     const chance = this.hitChanceFor(att, tgt, aim);
@@ -853,6 +856,43 @@ export class Game {
       if (res.damage > 0) sfx.hit();
       if (tgt.hp <= 0) await this.kill(tgt, att);
       else if (res.damage > 0) void tgt.rig.hit();
+    }
+    await anim;
+    this.ui.refresh();
+  }
+
+  /** Очередь: каждый патрон бросается отдельно, отдача снижает точность следующих. */
+  async burstAttack(att: Critter, tgt: Critter) {
+    const w = att.weapon;
+    const stack = att.weaponStack;
+    att.ap -= att.attackCost(false, true);
+    const rounds = Math.min(w.burst ?? 1, stack.loaded ?? 1);
+    if (stack.loaded !== undefined) stack.loaded -= rounds;
+    this.faceHex(att, tgt.hex);
+    const base = this.hitChanceFor(att, tgt, 'torso');
+    const anim = att.rig.attack(true);
+    let hits = 0, dmg = 0, crit = false;
+    for (let i = 0; i < rounds; i++) {
+      const res = resolveAttack(Math.max(5, base - 10 - 6 * i), {
+        dmg: w.dmg, bonus: 0, critChance: att.critChance, aim: 'torso', dt: tgt.dt, dr: tgt.dr,
+        finesse: att.sheet.traits.includes('finesse'),
+      });
+      sfx.shot();
+      await wait(0.07);
+      if (res.hit) { hits++; dmg += res.damage; crit ||= res.crit; }
+    }
+    if (!tgt.hostile && att.isPlayer) this.provoke(tgt);
+    tgt.aware = true;
+    if (this.mode === 'combat' && tgt.hostile && !this.order.includes(tgt)) this.order.push(tgt);
+    const tName = tgt.isPlayer ? 'вас' : (tgt.def.acc ?? tgt.name);
+    const who = att.isPlayer ? 'Вы даёте очередь' : `${att.name} даёт очередь`;
+    if (!hits) this.ui.log(`${who}: все пули мимо.`);
+    else {
+      this.ui.log(`${who}: ${hits} из ${rounds} ${hits === 1 ? 'попадает' : 'попадают'} в ${tName}, ${dmg} ед. урона.`, crit ? '#ffd060' : undefined);
+      tgt.hp -= dmg;
+      if (dmg > 0) sfx.hit();
+      if (tgt.hp <= 0) await this.kill(tgt, att);
+      else if (dmg > 0) void tgt.rig.hit();
     }
     await anim;
     this.ui.refresh();
