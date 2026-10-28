@@ -11,6 +11,7 @@ export const CRITTERS: Record<string, CritterDef> = {
   },
   batya: {
     id: 'batya', sprite: 'batya', name: 'Батья', acc: 'Батью', kind: 'human', faction: 'kibbutz',
+    portrait: { image: 'portraits/batya.jpg', idle: 'portraits/batya-idle.mp4', talk: 'portraits/batya-talk.mp4' },
     desc: 'Пожилая женщина в выцветшей панамке-тембель. Взгляд — как у сержанта на утреннем построении.',
     look: { skin: 0xb88a62, cloth: 0x8a8370, cloth2: 0x5a5040, hair: 0xd8d4cc, hat: 'tembel', female: true },
     sheet: { base: { st: 4, pe: 7, en: 5, ch: 7, in: 8, ag: 4, lk: 6 } },
@@ -19,10 +20,11 @@ export const CRITTERS: Record<string, CritterDef> = {
   },
   shlomo: {
     id: 'shlomo', sprite: 'shlomo', name: 'Шломо', kind: 'human', faction: 'kibbutz',
+    portrait: { image: 'portraits/shlomo.jpg', idle: 'portraits/shlomo-idle.mp4', talk: 'portraits/shlomo-talk.mp4' },
     desc: 'Часовой с древним пистолетом. Бородатый, загорелый до черноты, не выпускает оружия из рук.',
     look: { skin: 0x9c6c48, cloth: 0x5d6b3a, cloth2: 0x3f4a26, hair: 0x1a120a, hat: 'helmet', beard: true },
     sheet: { base: { st: 6, pe: 6, en: 6, ch: 4, in: 4, ag: 6, lk: 5 }, tags: ['smallGuns'] },
-    hand: 'pistol9',
+    hand: 'pistol9', dialog: 'shlomo',
     inventory: [{ id: 'ammo9', qty: 8 }],
     barks: ['Опять у башни шуршат…', 'Не отходи далеко от ворот.', 'Хамсин крепчает.', 'Батья у столовой. Иди к ней.', 'Из миклата? Ну и ну.'],
   },
@@ -56,6 +58,7 @@ export const CRITTERS: Record<string, CritterDef> = {
   },
   trader: {
     id: 'trader', sprite: 'shlomo', name: 'Мордехай', acc: 'Мордехая', kind: 'human', faction: 'traders',
+    portrait: { image: 'portraits/mordechai.jpg', idle: 'portraits/mordechai-idle.mp4', talk: 'portraits/mordechai-talk.mp4' },
     desc: 'Караванщик из Беэр-Шевы. Пыльная каска, тяжёлая разгрузка, в глазах — калькулятор.',
     sheet: { base: { st: 6, pe: 6, en: 6, ch: 6, in: 6, ag: 5, lk: 6 }, tags: ['barter', 'smallGuns'] },
     hand: 'pistol9', dialog: 'trader',

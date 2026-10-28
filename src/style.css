@@ -276,7 +276,8 @@ button { font-family: inherit; }
   background: radial-gradient(ellipse at 50% 60%, #3a2c1e, #0c0907 70%);
   box-shadow: inset 0 0 40px #000;
 }
-.dlg-head video, .dlg-head img { width: 100%; height: 100%; object-fit: cover; }
+.dlg-head video, .dlg-head img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }
+.dlg-head .dlg-talk { opacity: 0; transition: opacity .2s; }
 .dlg-ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #5a4a36; }
 .dlg-ph svg { width: 260px; height: 260px; fill: #2a2018; }
 .dlg-ph div { text-align: center; font-size: 26px; letter-spacing: .15em; color: #8a7458; }

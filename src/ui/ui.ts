@@ -651,8 +651,30 @@ export class UI {
       const w = el('div', 'dialog metal');
       const head = el('div', 'dlg-head');
       const portrait = npc.def.portrait;
-      if (portrait?.video) head.innerHTML = `<video src="${portrait.video}" autoplay loop muted playsinline></video>`;
-      else if (portrait?.image) head.innerHTML = `<img src="${portrait.image}" alt="">`;
+      // Пока печатается реплика — ролик «говорит», потом — «молчит» (как головы в Fallout).
+      let speak = (_text: string) => {};
+      let speakTimer = 0;
+      if (portrait?.idle || portrait?.talk) {
+        const mk = (src: string) => {
+          const v = document.createElement('video');
+          v.src = src; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+          if (portrait.image) v.poster = portrait.image;
+          return v;
+        };
+        const idle = mk(portrait.idle ?? portrait.talk!);
+        const talk = mk(portrait.talk ?? portrait.idle!);
+        talk.className = 'dlg-talk';
+        head.append(idle, talk);
+        void idle.play().catch(() => {});
+        speak = (text: string) => {
+          clearTimeout(speakTimer);
+          talk.currentTime = 0;
+          talk.style.opacity = '1';
+          void talk.play().catch(() => {});
+          const sec = clamp(text.length * 0.055, 2.5, 8);
+          speakTimer = window.setTimeout(() => { talk.style.opacity = '0'; talk.pause(); }, sec * 1000);
+        };
+      } else if (portrait?.image) head.innerHTML = `<img src="${portrait.image}" alt="">`;
       else head.innerHTML = `<div class="dlg-ph"><svg viewBox="0 0 200 200"><circle cx="100" cy="80" r="46"/><path d="M20 200c0-50 36-78 80-78s80 28 80 78z"/></svg><div>${esc(npc.name.toUpperCase())}<br><span>здесь будет «говорящая голова» — видео из Flow</span></div></div>`;
       head.appendChild(el('div', 'dlg-name', esc(npc.name)));
       const reply = el('div', 'dlg-reply crt');
@@ -680,7 +702,9 @@ export class UI {
         if (id === 'barter') { barter(); return; }
         const node = dlg.nodes[id];
         node.onEnter?.(ctx);
-        reply.innerHTML = esc(T(node.text)).replace(/\n/g, '<br>');
+        const said = T(node.text);
+        reply.innerHTML = esc(said).replace(/\n/g, '<br>');
+        speak(said);
         reply.scrollTop = 0;
         opts.innerHTML = '';
         const visible = node.options.filter((o) => !o.show || o.show(ctx));
@@ -695,7 +719,7 @@ export class UI {
         });
         this.refresh();
       };
-      this.openModal(w, () => { window.removeEventListener('keydown', keyHandler); resolve(); }, 'dialog');
+      this.openModal(w, () => { clearTimeout(speakTimer); window.removeEventListener('keydown', keyHandler); resolve(); }, 'dialog');
       go(dlg.start(ctx));
     });
   }
