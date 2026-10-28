@@ -5,7 +5,7 @@ import { SpriteRig, getSheet } from './sprites';
 import { Sheet, SkillId, derived, effStats, newSheet, skillValue } from '../rules/stats';
 import { ITEMS, Stack, WeaponDef, def } from '../rules/items';
 
-export type Faction = 'player' | 'kibbutz' | 'monster';
+export type Faction = 'player' | 'kibbutz' | 'monster' | 'raiders' | 'traders';
 export type FireMode = 'single' | 'aimed' | 'reload';
 
 export interface MonsterStats {
@@ -30,6 +30,10 @@ export interface CritterDef {
   hand?: string;
   armor?: string;
   dialog?: string;
+  /** Торгует (кнопка «ОБМЕН» в диалоге). */
+  trader?: boolean;
+  /** Опыт за победу (по умолчанию — из monster.xp или 50). */
+  xp?: number;
   barks?: string[];
   /** Портрет для диалога: картинка или видео из Flow (public/portraits/...). */
   portrait?: { image?: string; video?: string };
@@ -60,7 +64,7 @@ export class Critter {
     this.id = def.id;
     this.name = def.name;
     this.hex = { ...hex };
-    this.hostile = def.faction === 'monster';
+    this.hostile = def.faction === 'monster' || def.faction === 'raiders';
     this.sheet = { ...newSheet(), ...(def.sheet ?? {}) } as Sheet;
     if (def.sheet?.base) this.sheet.base = { ...def.sheet.base };
     if (def.kind === 'human') {

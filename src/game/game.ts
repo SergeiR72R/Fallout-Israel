@@ -5,11 +5,13 @@ import * as THREE from 'three';
 import { Hex, distance, eq, findPath, hexToWorld, key, neighbors, offsetToHex, uvToHex } from '../core/hex';
 import { clamp, pick, rand, roll100, wait, tween } from '../core/util';
 import { WALK_SPEED, RUN_SPEED } from '../config';
-import { Level, Interactive, hexShape } from '../world/level';
+import { Level, Interactive, LevelDef, hexShape } from '../world/level';
 import { View } from '../world/view';
-import { Critter } from '../world/critter';
+import { Critter, CritterDef } from '../world/critter';
 import { getSheet } from '../world/sprites';
-import { KIBBUTZ, CRITTERS } from '../data/kibbutz';
+import { KIBBUTZ } from '../data/kibbutz';
+import { CRITTERS } from '../data/critters';
+import { WORLD, EncounterType, makeEncounter } from '../data/world';
 import { DIALOGS, DialogCtx, QuestState } from '../data/dialogs';
 import { AIM_PARTS, AimPart, hitChance, resolveAttack, partName } from '../rules/combat';
 import { Sheet, SkillId, derived, effStats, skillPointsPerLevel, xpForLevel } from '../rules/stats';
@@ -19,23 +21,46 @@ import type { UI } from '../ui/ui';
 
 export type Targeting = null | 'attack' | 'lockpick';
 
+export interface CritterState {
+  tpl: string; hex: Hex; hp: number; dead: boolean; hostile: boolean;
+  inv: Stack[]; hands: [Stack | null, Stack | null]; armor: Stack | null; activeHand: 0 | 1;
+}
+
+/** Состояние постоянной локации: кто жив, что лежит в ящиках. */
+export interface LevelState {
+  critters: Record<string, CritterState>;
+  containers: Record<string, { items: Stack[]; locked?: number }>;
+}
+
 export interface SaveData {
-  v: 1;
+  v: 2;
   sheet: Sheet;
   minutes: number;
   karma: number;
   flags: string[];
   quests: Record<string, QuestState>;
-  critters: Record<string, { hex: Hex; hp: number; dead: boolean; hostile: boolean; inv: Stack[]; hands: [Stack | null, Stack | null]; armor: Stack | null; activeHand: 0 | 1 }>;
-  containers: Record<string, { items: Stack[]; locked?: number }>;
+  player: CritterState;
+  levelId: string;
+  /** Описание случайной встречи, если сохранились посреди неё. */
+  encounter?: LevelDef;
+  levels: Record<string, LevelState>;
+  world: { x: number; y: number };
+  seen?: string[];
 }
 
 const START_MINUTES = 7 * 60 + 40;
 
 export class Game {
-  readonly level: Level;
-  readonly critters: Critter[] = [];
+  level!: Level;
+  critters: Critter[] = [];
   readonly player: Critter;
+  /** Сохранённое состояние локаций, где герой уже был. */
+  levelStates: Record<string, LevelState> = {};
+  /** Положение героя на карте мира. */
+  world = { ...WORLD.start };
+  /** Открытые клетки карты мира (туман войны). */
+  worldSeen = new Set<string>();
+  private encounterDef: LevelDef | null = null;
   ui!: UI;
   mode: 'explore' | 'combat' = 'explore';
   order: Critter[] = [];
@@ -64,36 +89,161 @@ export class Game {
   private wanderTimers = new Map<string, number>();
 
   constructor(readonly view: View, sheet: Sheet, save?: SaveData) {
+    let pd: CritterDef = CRITTERS.player;
+    // Героиня — отдельный набор спрайтов (если он уже отрендерен).
+    if (sheet.sex === 'f' && getSheet('heroine')) pd = { ...pd, sprite: 'heroine' };
+    this.player = new Critter(pd, { q: 0, r: 0 });
+    this.player.sheet = sheet;
+    this.player.name = sheet.name;
+    this.player.hp = this.player.maxHp;
+    view.scene.add(this.player.rig.root, this.editorMarks);
+
+    if (save) {
+      this.minutes = save.minutes;
+      this.karma = save.karma;
+      this.flags = new Set(save.flags);
+      this.quests = { ...save.quests };
+      this.levelStates = save.levels;
+      this.world = { ...save.world };
+      this.worldSeen = new Set(save.seen ?? []);
+      this.restoreCritter(this.player, save.player);
+      this.encounterDef = save.encounter ?? null;
+      this.loadLevel(this.levelDef(save.levelId), { hex: save.player.hex });
+    } else {
+      this.loadLevel(KIBBUTZ, { spawn: true });
+    }
+  }
+
+  private levelDef(id: string): LevelDef {
+    if (this.encounterDef && this.encounterDef.id === id) return this.encounterDef;
+    const loc = WORLD.locations.find((l) => l.level === id);
+    if (!loc?.def) throw new Error(`Нет локации ${id}`);
+    return loc.def;
+  }
+
+  /** Снимок постоянной локации перед уходом с неё. */
+  private snapshotLevel() {
+    if (!this.level || this.level.def.temporary) return;
+    const st: LevelState = { critters: {}, containers: {} };
+    for (const it of this.level.interactives) if (it.kind === 'crate') st.containers[it.id] = { items: it.items ?? [], locked: it.locked };
+    for (const c of this.critters) if (!c.isPlayer) st.critters[c.id] = this.critterState(c);
+    this.levelStates[this.level.def.id] = st;
+  }
+
+  private critterState(c: Critter): CritterState {
+    return {
+      tpl: c.def.id, hex: { ...c.hex }, hp: c.hp, dead: c.dead, hostile: c.hostile,
+      inv: c.inventory, hands: c.hands, armor: c.armor, activeHand: c.activeHand,
+    };
+  }
+
+  private restoreCritter(c: Critter, st: CritterState) {
+    c.placeAt(st.hex);
+    c.hp = st.hp;
+    c.hostile = st.hostile;
+    c.inventory = st.inv;
+    c.hands = st.hands;
+    c.armor = st.armor;
+    c.activeHand = st.activeHand;
+    c.syncWeaponModel();
+    if (st.dead) { c.dead = true; void c.rig.die(); }
+  }
+
+  /**
+   * Загрузить локацию. arrival: spawn — точка «player» из описания (начало игры),
+   * hex — конкретный гекс (загрузка сохранения), иначе — точка прибытия с карты мира.
+   */
+  loadLevel(def: LevelDef, arrival: { spawn?: boolean; hex?: Hex } = {}) {
+    this.snapshotLevel();
+    for (const c of this.critters) if (!c.isPlayer) this.view.scene.remove(c.rig.root);
+    this.mode = 'explore';
+    this.order = [];
+    this.current = null;
+    this.busy = false;
+    this.targeting = null;
+    this.moveToken++;
+    this.playerTurnDone = null;
+    this.spawnHex.clear();
+    this.wanderTimers.clear();
+
     // ?nobg — посмотреть локацию на заглушках, без нарисованного фона.
     const noBg = new URLSearchParams(location.search).has('nobg');
-    this.level = new Level(noBg ? { ...KIBBUTZ, background: undefined } : KIBBUTZ);
-    view.setLevel(this.level);
-    const bg = this.level.buildBackground(view.camera);
-    if (bg) view.scene.add(bg);
+    this.level = new Level(noBg ? { ...def, background: undefined } : def);
+    this.view.setLevel(this.level, this.level.buildBackground(this.view.camera));
     for (const it of this.level.interactives) it.object.userData.interactive = it;
 
-    for (const sp of KIBBUTZ.spawns) {
-      let d = CRITTERS[sp.id];
-      // Героиня — отдельный набор спрайтов (если он уже отрендерен).
-      if (sp.id === 'player' && sheet.sex === 'f' && getSheet('heroine')) d = { ...d, sprite: 'heroine' };
+    const st = this.levelStates[def.id];
+    this.critters = [this.player];
+    for (const sp of def.spawns) {
+      if (sp.id === 'player') continue;
+      const tpl = sp.tpl ?? sp.id;
+      const d = { ...CRITTERS[tpl], id: sp.id };
       const want = 'u' in sp ? uvToHex(sp.u, sp.v) : offsetToHex(sp.col, sp.row);
       const hex = this.level.nearestPassable(want, (h) => !this.critters.some((o) => eq(o.hex, h)));
       const c = new Critter(d, hex);
-      if (c.isPlayer) {
-        c.sheet = sheet;
-        c.name = sheet.name;
-        c.hp = c.maxHp;
-      }
       c.rig.faceTo(Math.random() - 0.5, 1, true);
-      this.critters.push(c);
       this.spawnHex.set(c.id, { ...hex });
-      view.scene.add(c.rig.root);
+      const cs = st?.critters[c.id];
+      if (cs) this.restoreCritter(c, cs);
+      this.critters.push(c);
+      this.view.scene.add(c.rig.root);
     }
-    this.player = this.critters.find((c) => c.isPlayer)!;
-    view.scene.add(this.editorMarks);
-    if (save) this.applySave(save);
+    if (st) for (const it of this.level.interactives) {
+      const cs = st.containers[it.id];
+      if (cs) { it.items = cs.items; it.locked = cs.locked; }
+    }
+
+    const ps = def.spawns.find((s) => s.id === 'player');
+    let want: Hex;
+    if (arrival.hex) want = arrival.hex;
+    else if (arrival.spawn && ps) want = 'u' in ps ? uvToHex(ps.u, ps.v) : offsetToHex(ps.col, ps.row);
+    else if (def.entry) want = uvToHex(def.entry.u, def.entry.v);
+    else want = uvToHex(this.level.sizeU / 2, this.level.sizeV / 2);
+    this.player.placeAt(this.level.nearestPassable(want, (h) => !this.critters.some((o) => o !== this.player && eq(o.hex, h))));
+    this.player.rig.setMoving(0);
+    this.player.moving = false;
     const p = this.player.worldPos();
-    view.lookAtWorld(p.x, p.z);
+    this.view.lookAtWorld(p.x, p.z);
+    this.ui?.setCombat(false);
+    this.ui?.refresh();
+  }
+
+  /** Уйти на карту мира (через зелёную зону выхода). */
+  leaveToWorldMap() {
+    if (this.mode === 'combat') { this.ui.log('Нельзя уйти во время боя.'); return; }
+    const loc = WORLD.locations.find((l) => l.level === this.level.def.id);
+    if (loc) this.world = { x: loc.x, y: loc.y };
+    this.snapshotLevel();
+    this.ui.openWorldMap();
+  }
+
+  /** Прибыть в локацию с карты мира. */
+  enterLocation(level: string) {
+    this.encounterDef = null;
+    this.loadLevel(this.levelDef(level));
+    this.ui.log(`Вы прибыли: ${this.level.def.name}.`);
+  }
+
+  /** Случайная встреча в пустыне. */
+  enterEncounter(type: EncounterType) {
+    this.encounterDef = makeEncounter(type, Math.floor(Math.random() * 1e9));
+    this.loadLevel(this.encounterDef);
+    this.ui.log(this.encounterDef.name + '.');
+  }
+
+  /** Вода в миклате кончилась — конец игры, как в Fallout 1. */
+  waterRunOut() {
+    this.dead = true;
+    this.ui.showDeath('Миклат № 7 остался без воды. Вы не успели.');
+  }
+
+  /** Время в пути по карте мира. */
+  passTime(minutes: number) {
+    this.minutes += minutes;
+    // Отдых в пути: понемногу заживают раны.
+    const p = this.player;
+    p.hp = Math.min(p.maxHp, p.hp + Math.floor(((minutes / 60) * derived(p.sheet).healRate) / 6));
+    p.firstAidUses = 0;
   }
 
   // ---------------- цикл ----------------
@@ -386,8 +536,7 @@ export class Game {
     const done = await this.stepAlong(this.player, path, run, token);
     if (token === this.moveToken) this.view.showPath([]);
     if (done && this.mode === 'explore') {
-      const ex = this.level.exits.get(key(this.player.hex));
-      if (ex) this.ui.showWorldMapStub(ex.label);
+      if (this.level.exits.get(key(this.player.hex))) this.leaveToWorldMap();
     }
   }
 
@@ -717,7 +866,8 @@ export class Game {
       }
     }
     this.karma -= 20;
-    this.ui.log('Обитатели кибуца становятся враждебны!', '#ff7050');
+    const who = victim.def.faction === 'kibbutz' ? 'Обитатели кибуца становятся' : `${victim.name} становится`;
+    this.ui.log(`${who} враждебны!`.replace('становится враждебны', 'становится враждебным'), '#ff7050');
   }
 
   async kill(c: Critter, killer: Critter) {
@@ -726,14 +876,16 @@ export class Game {
     this.ui.log(`${c.name} ${c.def.kind === 'human' ? 'падает замертво' : 'погибает'}.`);
     await c.rig.die();
     if (c.isPlayer) { this.gameOver(); return; }
-    if (killer.isPlayer) this.gainXp(c.m?.xp ?? 50);
-    if (c.def.faction === 'monster' && this.quests.tower === 'active' && this.scorpionsDead()) {
-      this.ui.log('Гнездо у башни уничтожено. Батья будет рада.', '#a0e070');
+    if (killer.isPlayer) this.gainXp(c.def.xp ?? c.m?.xp ?? 50);
+    if (this.level.def.id === 'kibbutz' && c.def.faction === 'monster'
+      && this.critters.filter((o) => o.def.faction === 'monster').every((o) => o.dead)) {
+      this.flags.add('kibbutzScorpionsDead');
+      if (this.quests.tower === 'active') this.ui.log('Гнездо у башни уничтожено. Батья будет рада.', '#a0e070');
     }
   }
 
   scorpionsDead() {
-    return this.critters.filter((c) => c.def.faction === 'monster').every((c) => c.dead);
+    return this.flags.has('kibbutzScorpionsDead');
   }
 
   gainXp(n: number) {
@@ -887,7 +1039,7 @@ export class Game {
       if (c.dead || !c.hostile || c.aware) continue;
       if (this.sees(c, this.player)) {
         c.aware = true;
-        this.view.float(c.rig.root, '!', '#ff5040', c.rig.height);
+        this.view.float(c.rig.root, c.def.barks ? pick(c.def.barks) : '!', '#ff5040', c.rig.height);
         void this.startCombat();
         return;
       }
@@ -906,7 +1058,7 @@ export class Game {
   private wander(dt: number) {
     for (const c of this.critters) {
       if (c.dead || c.isPlayer || c.moving || c.aware) continue;
-      if (c.def.faction !== 'monster') continue;
+      if (c.def.faction !== 'monster' && c.def.faction !== 'raiders') continue;
       const t = (this.wanderTimers.get(c.id) ?? Math.random() * 4) - dt;
       this.wanderTimers.set(c.id, t);
       if (t > 0) continue;
@@ -965,40 +1117,17 @@ export class Game {
   // ---------------- сохранения ----------------
 
   save(): SaveData {
-    const containers: SaveData['containers'] = {};
-    for (const it of this.level.interactives) if (it.kind === 'crate') containers[it.id] = { items: it.items ?? [], locked: it.locked };
-    const critters: SaveData['critters'] = {};
-    for (const c of this.critters) {
-      critters[c.id] = { hex: c.hex, hp: c.hp, dead: c.dead, hostile: c.hostile, inv: c.inventory, hands: c.hands, armor: c.armor, activeHand: c.activeHand };
-    }
+    this.snapshotLevel();
     return {
-      v: 1, sheet: this.player.sheet, minutes: this.minutes, karma: this.karma,
-      flags: [...this.flags], quests: this.quests, critters, containers,
+      v: 2, sheet: this.player.sheet, minutes: this.minutes, karma: this.karma,
+      flags: [...this.flags], quests: this.quests,
+      player: this.critterState(this.player),
+      levelId: this.level.def.id,
+      encounter: this.level.def.temporary ? this.level.def : undefined,
+      levels: this.levelStates,
+      world: this.world,
+      seen: [...this.worldSeen],
     };
-  }
-
-  private applySave(s: SaveData) {
-    this.minutes = s.minutes;
-    this.karma = s.karma;
-    this.flags = new Set(s.flags);
-    this.quests = { ...s.quests };
-    for (const it of this.level.interactives) {
-      const st = s.containers[it.id];
-      if (st) { it.items = st.items; it.locked = st.locked; }
-    }
-    for (const c of this.critters) {
-      const st = s.critters[c.id];
-      if (!st) continue;
-      c.placeAt(st.hex);
-      c.hp = st.hp;
-      c.hostile = st.hostile;
-      c.inventory = st.inv;
-      c.hands = st.hands;
-      c.armor = st.armor;
-      c.activeHand = st.activeHand;
-      c.syncWeaponModel();
-      if (st.dead) { c.dead = true; void c.rig.die(); }
-    }
   }
 
   // ---------------- редактор проходимости (F10) ----------------

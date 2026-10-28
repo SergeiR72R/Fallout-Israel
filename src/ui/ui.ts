@@ -13,6 +13,9 @@ import { Stack, def, invWeight, countItem } from '../rules/items';
 import { CURSORS, itemIcon } from './icons';
 import { el, esc } from '../core/util';
 import { sfx } from './sfx';
+import { buildWorldMap } from './worldmap';
+import { stackable } from '../rules/items';
+import { clamp } from '../core/util';
 
 export type CursorKind = keyof typeof CURSORS;
 
@@ -88,7 +91,7 @@ export class UI {
     const colB = el('div', 'hud-col two');
     colB.append(
       redButton('НАВЫКИ', () => this.openSkilldex()),
-      redButton('КАРТА', () => this.showWorldMapStub('Пустошь Негева')),
+      redButton('КАРТА', () => this.log('Чтобы выйти на карту мира, дойдите до зелёной зоны на краю локации.')),
       redButton('ПЕРС', () => this.openCharacter()),
       redButton('КЕШЕР', () => this.openKesher()),
     );
@@ -526,12 +529,92 @@ export class UI {
     this.openModal(w);
   }
 
-  showWorldMapStub(label: string) {
-    const w = this.window('КАРТА МИРА', 'options');
-    w.appendChild(el('div', 'help-text crt', `<div>${esc(label)}.</div><br><div class="dim">Путешествие по карте мира со случайными встречами появится в следующей версии.</div>`));
-    w.appendChild(redButton('ОСТАТЬСЯ', () => this.closeModal()));
-    this.openModal(w);
+  openWorldMap() {
+    const w = buildWorldMap(this.game, () => this.closeModal());
+    this.openModal(w, () => (w as unknown as { stop: () => void }).stop(), 'worldmap');
   }
+
+  // ---------- торговля ----------
+
+  openBarter(npc: Critter) {
+    const g = this.game, p = g.player;
+    const mine = p.inventory, theirs = npc.inventory;
+    const myOffer: Stack[] = [], theirOffer: Stack[] = [];
+    // Цены как в Fallout: зависят от разницы навыков «Торговля».
+    const diff = p.skill('barter') - npc.skill('barter');
+    const buyMult = clamp(1.6 - diff / 150, 1.0, 2.5);
+    const sellMult = clamp(0.6 + diff / 300, 0.3, 0.9);
+    const price = (s: Stack, buying: boolean) => {
+      if (s.id === 'asimon') return s.qty;
+      const v = def(s).value;
+      return (buying ? Math.ceil(v * buyMult) : Math.floor(v * sellMult)) * s.qty;
+    };
+    const sum = (list: Stack[], buying: boolean) => list.reduce((a, s) => a + price(s, buying), 0);
+    const put = (to: Stack[], s: Stack) => {
+      const same = stackable(s.id) ? to.find((x) => x.id === s.id) : undefined;
+      if (same) same.qty += s.qty; else to.push(s);
+    };
+    const move = (from: Stack[], to: Stack[], s: Stack, all: boolean) => {
+      const n = all || !stackable(s.id) ? s.qty : s.id === 'asimon' ? Math.min(s.qty, 10) : 1;
+      if (n >= s.qty) { from.splice(from.indexOf(s), 1); put(to, s); }
+      else { s.qty -= n; put(to, { ...s, qty: n }); }
+    };
+
+    const w = this.window(`ОБМЕН: ${npc.name.toUpperCase()}`, 'barter');
+    const cols = el('div', 'barter-cols');
+    const boxes = [0, 1, 2, 3].map(() => el('div', 'inv-list sunk'));
+    const totals = el('div', 'barter-totals crt');
+    const say = el('div', 'barter-say crt');
+    say.textContent = `${npc.name}: — Смотри, выбирай. Цены честные.`;
+    const titles = ['ВАШИ ВЕЩИ', 'ВЫ ОТДАЁТЕ', `${npc.name.toUpperCase()} ОТДАЁТ`, `ТОВАРЫ: ${npc.name.toUpperCase()}`];
+    const lists: [Stack[], Stack[], boolean][] = [[mine, myOffer, false], [myOffer, mine, false], [theirOffer, theirs, true], [theirs, theirOffer, true]];
+    boxes.forEach((b, i) => {
+      const c = el('div', 'loot-col');
+      c.append(el('div', 'col-lbl', titles[i]), b);
+      cols.appendChild(c);
+    });
+    const render = () => {
+      lists.forEach(([src, dst, buying], i) => {
+        const b = boxes[i];
+        b.innerHTML = '';
+        for (const s of src) {
+          const row = el('div', 'inv-item', `${itemIcon(s.id)}<span>${esc(def(s).name)}</span>${s.qty > 1 ? `<b>×${s.qty}</b>` : ''}<em>${price({ ...s, qty: 1 }, buying)}</em>`);
+          row.title = 'Щелчок — одна штука, Shift+щелчок — всё';
+          row.onclick = (e) => { sfx.click(); move(src, dst, s, e.shiftKey); render(); };
+          b.appendChild(row);
+        }
+        if (!src.length) b.appendChild(el('div', 'empty', 'Пусто'));
+      });
+      totals.innerHTML = `Вы отдаёте: <b>${sum(myOffer, false)}</b> · Вы получаете: <b>${sum(theirOffer, true)}</b>`;
+    };
+    const deal = () => {
+      const give = sum(myOffer, false), get = sum(theirOffer, true);
+      if (!myOffer.length && !theirOffer.length) return;
+      if (give < get) {
+        sfx.denied();
+        say.textContent = `${npc.name}: — За это? Добавь ещё ${get - give}, и по рукам.`;
+        return;
+      }
+      for (const s of [...myOffer]) move(myOffer, theirs, s, true);
+      for (const s of [...theirOffer]) move(theirOffer, mine, s, true);
+      sfx.unlock();
+      say.textContent = `${npc.name}: — Приятно иметь дело.`;
+      this.log('Сделка заключена.');
+      render();
+      this.refresh();
+    };
+    const actions = el('div', 'inv-actions');
+    actions.append(redButton('СДЕЛКА', deal), redButton('ГОТОВО', () => this.closeModal()));
+    w.append(say, cols, totals, actions);
+    render();
+    this.openModal(w, () => {
+      // Несостоявшиеся предложения возвращаются владельцам.
+      for (const s of [...myOffer]) move(myOffer, mine, s, true);
+      for (const s of [...theirOffer]) move(theirOffer, theirs, s, true);
+      this.refresh();
+    });
+  }
+
 
   // ---------- прицельный выстрел ----------
 
@@ -575,7 +658,12 @@ export class UI {
       const reply = el('div', 'dlg-reply crt');
       const opts = el('div', 'dlg-opts crt');
       const side = el('div', 'dlg-side');
-      side.append(redButton('ОБМЕН', () => { sfx.denied(); this.flashReply(reply, '[Торговля появится в следующей версии.]'); }), redButton('ПРОЩАЙ', () => this.closeModal()));
+      const barter = () => {
+        if (!npc.def.trader) { sfx.denied(); this.flashReply(reply, `${npc.name}: — Мне нечем торговать.`); return; }
+        this.closeModal();
+        setTimeout(() => this.openBarter(npc), 0);
+      };
+      side.append(redButton('ОБМЕН', barter), redButton('ПРОЩАЙ', () => this.closeModal()));
       const lower = el('div', 'dlg-lower');
       lower.append(reply, opts, side);
       w.append(head, lower);
@@ -589,6 +677,7 @@ export class UI {
 
       const go = (id: string) => {
         if (id === 'end') { this.closeModal(); return; }
+        if (id === 'barter') { barter(); return; }
         const node = dlg.nodes[id];
         node.onEnter?.(ctx);
         reply.innerHTML = esc(T(node.text)).replace(/\n/g, '<br>');
@@ -619,10 +708,10 @@ export class UI {
 
   // ---------- смерть ----------
 
-  showDeath() {
+  showDeath(reason?: string) {
     const w = el('div', 'death');
     w.innerHTML = `<div class="death-title">ВЫ ПОГИБЛИ</div>
-      <div class="death-text">Пустошь забирает своих. Миклат № 7 так и не дождался мембраны.<br>Через ${this.game.waterDays} дней в нём закончится вода.</div>`;
+      <div class="death-text">${reason ? esc(reason) : `Пустошь забирает своих. Миклат № 7 так и не дождался мембраны.<br>Через ${this.game.waterDays} дней в нём закончится вода.`}</div>`;
     const btns = el('div', 'death-btns');
     btns.append(redButton('ЗАГРУЗИТЬ', () => this.quickLoad()), redButton('ГЛАВНОЕ МЕНЮ', () => location.reload()));
     w.appendChild(btns);

@@ -11,6 +11,7 @@ const P: Record<string, string> = {
   jacket: '<path d="M20 12l12 6 12-6 10 8-6 10-4-2v26H20V28l-4 2-6-10z"/>',
   vest: '<path d="M22 10h6l4 6 4-6h6l6 8v34H16V18z"/><rect x="22" y="26" width="20" height="16" fill="#0004"/>',
   sting: '<path d="M12 50c10-4 18-12 22-24 2-6 6-12 14-14-2 6-4 10-8 14 4 0 8-2 10-4-4 10-14 20-38 28z"/>',
+  water: '<path d="M24 14h16v6l4 4v26c0 3-2 5-5 5H25c-3 0-5-2-5-5V24l4-4z"/><rect x="26" y="8" width="12" height="7" rx="2"/>',
   asimon: '<circle cx="32" cy="32" r="18"/><rect x="29" y="18" width="6" height="28" fill="#0007"/>',
 };
 

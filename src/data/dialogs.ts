@@ -83,6 +83,7 @@ export const DIALOGS: Record<string, DialogDef> = {
           { text: 'Про мембрану…', show: (c) => smart(c) && !c.flag('knowsBeersheva'), next: 'membrane' },
           { text: 'Насчёт скорпионов…', show: smart, next: 'questOffer' },
           { text: 'Бабушка, дай кушать.', show: (c) => dumb(c) && !c.flag('gotLoof'), next: 'dumb' },
+          { text: 'Можно у вас что-нибудь выменять?', next: 'barter' },
           { text: 'Ничего. До встречи.', next: 'end' },
         ],
       },
@@ -157,6 +158,7 @@ export const DIALOGS: Record<string, DialogDef> = {
         text: (c) => `— Вода снова наша. Ты всегда ${c.g('желанный гость', 'желанная гостья')} в Нахаль-Оре, ${c.name}.`,
         options: [
           { text: 'Расскажите про мембрану.', show: (c) => !c.flag('knowsBeersheva'), next: 'membrane' },
+          { text: 'Можно у вас что-нибудь выменять?', next: 'barter' },
           { text: 'До встречи.', next: 'end' },
         ],
       },
@@ -167,4 +169,55 @@ export const DIALOGS: Record<string, DialogDef> = {
       },
     },
   },
+  trader: {
+    start: (c) => (c.flag('metTrader') ? 'again' : 'first'),
+    nodes: {
+      first: {
+        onEnter: (c) => c.set('metTrader'),
+        text: '— Шалом, путник. Мордехай, караван из Беэр-Шевы. Вода, патроны, шприц-тюбики. Покупаю, продаю, не обманываю. Почти.',
+        options: [
+          { text: 'Покажи товар.', next: 'barter' },
+          { text: 'Расскажи про Беэр-Шеву.', show: (c) => c.stat('in') > 3, next: 'beersheba' },
+          { text: 'Ты не встречал мембрану для опреснителя?', show: (c) => c.stat('in') > 3, next: 'membrane' },
+          { text: 'Ты дядя с водой? Дай воды!', show: (c) => c.stat('in') <= 3, next: 'dumb' },
+          { text: 'Прощай.', next: 'end' },
+        ],
+      },
+      again: {
+        text: '— А, миклатник. Ещё жив? Хорошо для торговли.',
+        options: [
+          { text: 'Покажи товар.', next: 'barter' },
+          { text: 'Расскажи про Беэр-Шеву.', show: (c) => c.stat('in') > 3, next: 'beersheba' },
+          { text: 'Что слышно на побережье?', show: (c) => c.stat('in') > 3, next: 'coast' },
+          { text: 'Прощай.', next: 'end' },
+        ],
+      },
+      beersheba: {
+        onEnter: (c) => c.set('knowsBeersheva'),
+        text: '— Беэр-Шева — это контейнеры, рынок у старого турецкого вокзала и много людей, которые хотят твои асимоны. Иди на юго-восток по старому шоссе, не промахнёшься. Дня полтора пешком.',
+        options: [
+          { text: 'А мембрана?', next: 'membrane' },
+          { text: 'Спасибо.', next: 'again' },
+        ],
+      },
+      membrane: {
+        onEnter: (c) => c.set('knowsBeersheva'),
+        text: '— Мембрана… Довоенная техника — это к Ицику-Мусорщику. Он торгует на рынке Беэр-Шевы. Только у Ицика ничего не бывает дёшево.',
+        options: [
+          { text: 'Что ещё знаешь?', next: 'coast' },
+          { text: 'Понятно.', next: 'again' },
+        ],
+      },
+      coast: {
+        onEnter: (c) => c.set('knowsCoast'),
+        text: '— На побережье стоят большие опреснители, ещё довоенные. Только там всё светится, а у кого светятся руки — долго не живёт. Я туда не хожу. И тебе не советую.',
+        options: [{ text: 'Учту.', next: 'again' }],
+      },
+      dumb: {
+        text: '— Воды? Вода стоит асимонов, дружок. Асимоны есть? Нет? Тогда смотри и не трогай.',
+        options: [{ text: 'Хочу смотреть!', next: 'barter' }, { text: 'Пока!', next: 'end' }],
+      },
+    },
+  },
 };
+

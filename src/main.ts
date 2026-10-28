@@ -20,7 +20,9 @@ window.addEventListener('resize', updateUiScale);
 function readSave(): SaveData | null {
   try {
     const raw = localStorage.getItem('hamsin-save');
-    return raw ? (JSON.parse(raw) as SaveData) : null;
+    const s = raw ? (JSON.parse(raw) as SaveData) : null;
+    // Сохранения старого формата (до карты мира) не подходят.
+    return s && s.v === 2 ? s : null;
   } catch { return null; }
 }
 

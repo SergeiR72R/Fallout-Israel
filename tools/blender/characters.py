@@ -49,6 +49,10 @@ CHARS = {
                    beard=True, outfit='uniform', cloth=(0.09, 0.11, 0.045), pants=(0.08, 0.095, 0.04), trim=(0.05, 0.06, 0.03),
                    boots=(0.08, 0.06, 0.04), belt=True, vest=(0.11, 0.10, 0.055), hat='helmet', holster=True,
                    sets=['none', 'pistol'], bulk=1.06),
+    'raider': dict(body='male', height=1.80, skin=(0.36, 0.21, 0.12), hair=(0.025, 0.02, 0.015), hair_style='short',
+                   beard=True, outfit='uniform', cloth=(0.16, 0.10, 0.055), pants=(0.05, 0.045, 0.04), trim=(0.09, 0.06, 0.035),
+                   boots=(0.05, 0.035, 0.025), belt=True, vest=(0.07, 0.045, 0.03), holster=True,
+                   sets=['none', 'pistol', 'knife'], bulk=1.06),
 }
 C = CHARS[CHAR]
 SETS = (arg('--sets').split(',') if arg('--sets') else C['sets'])

@@ -44,12 +44,13 @@ export type PropDef = PropBase & (
   | { type: 'crate'; locked?: number; items: Stack[] }
   | { type: 'hatch' }
   | { type: 'sandbags'; w: number }
+  | { type: 'rock'; r: number }
   /** Мешки с песком между двумя точками (u,v) — для стенок, нарисованных под любым углом. */
   | { type: 'wall'; to: [number, number] }
 );
 
 /** Где появляется персонаж: столбец/ряд гексов или точка в метрах (u, v). */
-export type SpawnDef = { id: string } & ({ col: number; row: number } | { u: number; v: number });
+export type SpawnDef = { id: string; tpl?: string } & ({ col: number; row: number } | { u: number; v: number });
 
 export interface LevelDef {
   id: string;
@@ -61,6 +62,12 @@ export interface LevelDef {
   props: PropDef[];
   spawns: SpawnDef[];
   exits: { col: number; row: number; w: number; h: number; to: string; label: string }[];
+  /** Точка прибытия с карты мира. */
+  entry?: { u: number; v: number };
+  /** Временная локация (случайная встреча): её состояние не сохраняется. */
+  temporary?: boolean;
+  /** Камни и мелочь, разбросанные по земле-заглушке (для встреч). */
+  scatter?: number;
   /** Утоптанные тропы (для текстуры-заглушки), точки в метрах (u, v). */
   paths?: [number, number][][];
   /** Ручные правки проходимости из редактора (F10). */
@@ -408,6 +415,24 @@ export class Level {
         deco(g);
         this.blockers.push({ x, z, w: 1.6, d: 1.6, h: 0.3, rot: 0, low: true });
         this.interactives.push({ id: 'hatch', name: 'Аварийный лаз миклата', desc: 'Бетонная труба аварийного выхода из миклата № 7. Через неё вы и выбрались наружу. За спиной — сто лет темноты, назад дороги нет.', hex: this.nearestHex(x, z), object: g, kind: 'hatch' });
+        break;
+      }
+      case 'rock': {
+        // Валун: искажённый многогранник.
+        const geo = new THREE.IcosahedronGeometry(p.r, 1);
+        const pos = geo.attributes.position;
+        let seed = (p.u * 7.3 + p.v * 3.1) % 1;
+        const rnd = () => (seed = (seed * 9301 + 49297) % 233280 / 233280);
+        for (let i = 0; i < pos.count; i++) {
+          const k = 0.75 + rnd() * 0.45;
+          pos.setXYZ(i, pos.getX(i) * k, Math.max(-p.r * 0.2, pos.getY(i) * k * 0.7), pos.getZ(i) * k);
+        }
+        geo.computeVertexNormals();
+        const rock = new THREE.Mesh(geo, mat(0x8a7458, 1));
+        rock.position.set(x, p.r * 0.35, z);
+        rock.rotation.y = rnd() * 6;
+        deco(rock);
+        this.blockers.push({ x, z, w: p.r * 1.6, d: p.r * 1.6, h: p.r, rot: 0, low: p.r < 0.9 });
         break;
       }
       case 'sandbags': {

@@ -59,6 +59,10 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'loof', name: 'Банка «Лоф»', kind: 'drug', weight: 1, value: 10, glyph: '🥫', heal: [2, 5],
     desc: 'Армейская тушёнка. Срок годности истёк сто лет назад, но вкус не изменился.',
   },
+  water: {
+    id: 'water', name: 'Фляга воды', kind: 'drug', weight: 1, value: 15, glyph: '💧', heal: [3, 6],
+    desc: 'Мятая армейская фляга. Вода тёплая и пахнет железом, но это вода.',
+  },
   jacket: {
     id: 'jacket', name: 'Кожаная куртка', kind: 'armor', weight: 5, value: 250, glyph: '🧥',
     desc: 'Потёртая кожаная куртка. Лучше, чем ничего.',

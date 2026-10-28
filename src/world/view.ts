@@ -77,9 +77,17 @@ export class View {
     this.updateCamera();
   }
 
-  setLevel(level: Level) {
+  private levelBg: THREE.Object3D | null = null;
+
+  /** Показать локацию (предыдущая и её фон убираются со сцены). */
+  setLevel(level: Level, background: THREE.Object3D | null = null) {
+    if (this.level) this.scene.remove(this.level.root);
+    if (this.levelBg) this.scene.remove(this.levelBg);
     this.scene.add(level.root);
+    if (background) this.scene.add(background);
+    this.levelBg = background;
     this.level = level;
+    this.pathMarks.clear();
     this.computeBounds();
   }
 

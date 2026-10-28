@@ -3,7 +3,6 @@
 // поворот — относительно сетки тайлов, как стены в Fallout.
 
 import type { LevelDef } from '../world/level';
-import type { CritterDef } from '../world/critter';
 
 const CONCRETE = 0x9e988c;
 const PLASTER = 0xc4b8a0;
@@ -67,10 +66,12 @@ export const KIBBUTZ: LevelDef = {
     { id: 'player', col: 10, row: 46 },
     { id: 'batya', u: 8, v: 24.8 }, // у двери столовой
     { id: 'shlomo', col: 23, row: 51 },
-    { id: 'scorp1', col: 29, row: 9 },
-    { id: 'scorp2', col: 37, row: 13 },
-    { id: 'scorpBig', col: 34, row: 4 },
+    { id: 'scorp1', tpl: 'scorpion', col: 29, row: 9 },
+    { id: 'scorp2', tpl: 'scorpion', col: 37, row: 13 },
+    { id: 'scorpBig', tpl: 'scorpionBig', col: 34, row: 4 },
   ],
+  // Сюда приходит герой с карты мира.
+  entry: { u: 1.6, v: 13 },
   exits: [{ col: 0, row: 8, w: 2, h: 14, to: 'worldmap', label: 'Пустошь Негева' }],
   paths: [
     [[6, 43], [10, 40], [13, 33], [12, 26], [11, 22]],
@@ -80,48 +81,4 @@ export const KIBBUTZ: LevelDef = {
     [[11, 21], [6, 18], [0, 13]],
     [[16, 42], [21, 37]],
   ],
-};
-
-export const CRITTERS: Record<string, CritterDef> = {
-  player: {
-    id: 'player', sprite: 'hero', name: 'Вы', kind: 'human', faction: 'player', desc: 'Это вы.',
-    look: { skin: 0xc8a07a, cloth: 0x5b7690, cloth2: 0x33393e, hair: 0x2b1d12, stripe: 0xd0802c },
-    inventory: [{ id: 'knife', qty: 1 }, { id: 'ammo9', qty: 16 }, { id: 'stim', qty: 2 }, { id: 'asimon', qty: 20 }],
-    hand: 'pistol9',
-  },
-  batya: {
-    id: 'batya', sprite: 'batya', name: 'Батья', acc: 'Батью', kind: 'human', faction: 'kibbutz',
-    desc: 'Пожилая женщина в выцветшей панамке-тембель. Взгляд — как у сержанта на утреннем построении.',
-    look: { skin: 0xb88a62, cloth: 0x8a8370, cloth2: 0x5a5040, hair: 0xd8d4cc, hat: 'tembel', female: true },
-    sheet: { base: { st: 4, pe: 7, en: 5, ch: 7, in: 8, ag: 4, lk: 6 } },
-    hand: 'knife', dialog: 'batya',
-    inventory: [{ id: 'loof', qty: 3 }, { id: 'asimon', qty: 120 }],
-  },
-  shlomo: {
-    id: 'shlomo', sprite: 'shlomo', name: 'Шломо', kind: 'human', faction: 'kibbutz',
-    desc: 'Часовой с древним пистолетом. Бородатый, загорелый до черноты, не выпускает оружия из рук.',
-    look: { skin: 0x9c6c48, cloth: 0x5d6b3a, cloth2: 0x3f4a26, hair: 0x1a120a, hat: 'helmet', beard: true },
-    sheet: { base: { st: 6, pe: 6, en: 6, ch: 4, in: 4, ag: 6, lk: 5 }, tags: ['smallGuns'] },
-    hand: 'pistol9',
-    inventory: [{ id: 'ammo9', qty: 8 }],
-    barks: ['Опять у башни шуршат…', 'Не отходи далеко от ворот.', 'Хамсин крепчает.', 'Батья у столовой. Иди к ней.', 'Из миклата? Ну и ну.'],
-  },
-  scorp1: {
-    id: 'scorp1', sprite: 'scorpion', name: 'Скорпион', acc: 'скорпиона', kind: 'scorpion', faction: 'monster',
-    desc: 'Гигантский скорпион размером с собаку. Жало блестит от яда.',
-    monster: { hp: 12, ap: 5, ac: 3, skill: 45, seq: 6, crit: 3, pe: 5, dt: 0, dr: 0, xp: 60, weapon: 'claw' },
-    inventory: [{ id: 'sting', qty: 1 }],
-  },
-  scorp2: {
-    id: 'scorp2', sprite: 'scorpion', name: 'Скорпион', acc: 'скорпиона', kind: 'scorpion', faction: 'monster',
-    desc: 'Гигантский скорпион размером с собаку. Жало блестит от яда.',
-    monster: { hp: 12, ap: 5, ac: 3, skill: 45, seq: 6, crit: 3, pe: 5, dt: 0, dr: 0, xp: 60, weapon: 'claw' },
-    inventory: [{ id: 'sting', qty: 1 }],
-  },
-  scorpBig: {
-    id: 'scorpBig', sprite: 'scorpionBig', name: 'Матка скорпионов', acc: 'матку скорпионов', kind: 'bigScorpion', faction: 'monster',
-    desc: 'Огромная самка скорпиона. Панцирь в шрамах от пуль — кто-то уже пытался.',
-    monster: { hp: 22, ap: 8, ac: 5, skill: 55, seq: 8, crit: 5, pe: 6, dt: 1, dr: 10, xp: 150, weapon: 'bigClaw' },
-    inventory: [{ id: 'sting', qty: 2 }],
-  },
 };
